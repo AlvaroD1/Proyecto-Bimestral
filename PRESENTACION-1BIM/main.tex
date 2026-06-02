@@ -1,0 +1,150 @@
+\documentclass[11pt,a4paper]{report}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+% Definición de colores para el documento
+\definecolor{primary}{RGB}{26, 54, 93}
+\definecolor{secondary}{RGB}{43, 108, 176}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=secondary
+}
+
+% Formato estilizado de capítulos y secciones
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{primary}}
+  {\raggedleft\Large\chaptername\ \thechapter}
+  {1ex}
+  {\titlerule[2pt]\vspace{2ex}\huge\filright}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{primary}}{\thesection}{1em}{}
+
+\begin{document}
+
+% Portada
+\begin{titlepage}
+    \centering
+    \vspace*{3cm}
+    {\Huge\bfseries\color{primary} Análisis Reto} \\[1cm] % [cite: 237]
+    {\LARGE\bfseries ISBEN SOLUTION} \\[2cm]
+    {\Large \today}
+\end{titlepage}
+
+\tableofcontents % [cite: 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252]
+\newpage
+
+\chapter{Introducción y Contexto} % [cite: 253]
+
+\section{Introducción}
+ISBEN SOLUTION es una plataforma tecnológica orientada a la gestión de insumos para micro mercados y ventas al por mayor[cite: 254]. El sistema funciona como un aplicativo intermediario que permite a los compradores realizar órdenes de pedidos con una visión transparente y en tiempo real del stock de todos los productos[cite: 255]. Se trata de una plataforma de libre elección, donde cualquier persona, tienda, empresa o evento que requiera insumos puede elegir libremente a su vendedor o proveedor[cite: 256]. Para lograr esto, el sistema coordina tres roles principales con permisos diferenciados: las Empresas (proveedores o distribuidores), los Vendedores (comercializadores) y los Tenderos o Compradores (clientes finales)[cite: 257]. Además, la plataforma incorpora un modelo de negocio basado en suscripciones anuales para las empresas y el cálculo automatizado de comisiones por volumen de ventas[cite: 258].
+
+\section{Problemática}
+El desarrollo de ISBEN SOLUTION surge para resolver varias deficiencias críticas detectadas en el ecosistema actual de abastecimiento comercial[cite: 259]:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Desfase y descontrol de inventarios:} Existe un grave problema en el control de inventario debido a la pérdida de datos y lentitud en la subida de productos, lo que provoca que las ventas se registren tarde y los comercios se queden sin stock real[cite: 260].
+    \item \textbf{Inseguridad y riesgo de estafa:} Las transacciones actuales carecen de garantías que aseguren a las empresas que una venta es real y libre de fraudes[cite: 261].
+    \item \textbf{Falta de confianza comercial:} No existen mecanismos estandarizados que permitan a las empresas proveedoras verificar si un vendedor es verdaderamente confiable para comercializar y entregar sus productos[cite: 262].
+    \item \textbf{Conflictos logísticos:} Se presentan serias dificultades para gestionar de manera rentable los pedidos de bajo valor económico (por ejemplo, pedidos de solo 30 dólares) que deben ser entregados en ubicaciones muy lejanas, lo que genera confusiones y el riesgo constante de perder clientes[cite: 263].
+    \item \textbf{Brecha tecnológica en los usuarios finales:} Muchos de los compradores finales (tenderos o emprendedores) son personas de la tercera edad que sufren barreras de usabilidad al interactuar con aplicaciones móviles complejas[cite: 264].
+\end{itemize}
+
+\section{Metodología o estrategia de desarrollo}
+Para abordar los requerimientos y solucionar las problemáticas planteadas, el sistema se construirá bajo las siguientes estrategias tecnológicas y arquitectónicas[cite: 265]:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Arquitectura de Microservicios:} El desarrollo se basará en microservicios para asegurar un acoplamiento débil entre los distintos módulos del sistema[cite: 266]. Esto permitirá aislar procesos críticos como el motor de reglas lógicas de envío o la autenticación biométrica/MFA para que el sistema sea escalable[cite: 267].
+    \item \textbf{Diseño Centrado en la Accesibilidad (UX/UI):} Se implementará un diseño completamente responsivo para dispositivos móviles[cite: 268]. Específicamente para el rol de Tendero/Comprador, la interfaz contará con un modo de alta accesibilidad, tipografía legible y navegación simplificada para mitigar la brecha tecnológica de los adultos mayores[cite: 269].
+    \item \textbf{Sincronización y Baja Latencia:} Para solucionar el desfase de productos, el microservicio de inventario procesará las actualizaciones de stock en tiempo real con una latencia crítica menor a 2 segundos[cite: 270].
+    \item \textbf{Seguridad e Integración de APIs:} Todas las integraciones (como la validación de RUC ante entidades gubernamentales o la facturación electrónica) se realizarán mediante APIs REST seguras, utilizando conexiones cifradas bajo los estándares HTTPS y TLS 1.3[cite: 271].
+    \item \textbf{Integridad Transaccional y Atómica:} Para garantizar ventas sin estafas, el flujo de confirmación requerirá pagos por adelantado del 50\% o 100\%[cite: 272]. La plataforma implementará mecanismos de "Rollback"; si el cálculo de la comisión, la pasarela de pago o el cobro de anticipos falla, la transacción se revertirá automáticamente para evitar fraudes o retenciones de stock[cite: 273].
+\end{itemize}
+
+\chapter{Planificación y análisis} % [cite: 274]
+
+\section{Análisis}
+El análisis de ISBEN SOLUTION define a la plataforma como un intermediario tecnológico libre de exclusividad, permitiendo conectar a empresas proveedoras, vendedores y tenderos finales[cite: 275]. El sistema se concibe para erradicar la pérdida de datos en la actualización de inventarios, evitando que se vendan productos sin stock[cite: 276]. Asimismo, la solución aborda la necesidad de garantizar las transacciones mediante cobros anticipados para evitar estafas[cite: 277]. Para mitigar la desconfianza comercial y los problemas logísticos de pedidos pequeños en zonas alejadas, se incorpora un sistema de calificaciones cruzadas y reglas dinámicas de envío[cite: 278].
+
+\section{Requisitos funcionales} % [cite: 279]
+\begin{description}
+    \item[RF-01:] Control de acceso basado en roles para Empresa, Vendedor y Tendero/Comprador[cite: 280].
+    \item[RF-02:] Registro y validación automatizada de empresas utilizando el RUC y referencias comerciales[cite: 281].
+    \item[RF-03:] Módulo de onboarding interactivo y capacitación obligatoria para Vendedores[cite: 282].
+    \item[RF-04:] Mecanismo de seguridad reforzado de acceso para Vendedores (MFA o biometría)[cite: 283].
+    \item[RF-05:] Sincronización y visualización del stock de productos en tiempo real[cite: 284].
+    \item[RF-06:] Integración dinámica de inventarios, ya sea propio o mediante APIs de terceros[cite: 285].
+    \item[RF-07:] Configuración autónoma de límites y cantidad mínima de compra por Empresa[cite: 286].
+    \item[RF-08:] Toma de pedidos directa desde la aplicación con visibilidad del estado[cite: 287].
+    \item[RF-09:] Flujo de confirmación anti-estafa con pagos anticipados del 50\% o 100\% y reversión automática de transacciones fallidas[cite: 288].
+    \item[RF-10:] Cálculo automático de envíos mediante reglas dinámicas por valor y distancia[cite: 289].
+    \item[RF-11:] Emisión exclusiva de facturación electrónica por parte de la Empresa[cite: 290].
+    \item[RF-12:] Módulo de procesamiento de suscripción anual para Negocios[cite: 291].
+    \item[RF-13:] Cálculo automatizado e inmediato de comisiones de venta al confirmar la transacción[cite: 292].
+    \item[RF-14:] Sistema bidireccional de calificaciones cruzadas entre todos los roles[cite: 293].
+\end{description}
+
+\section{Requisitos no funcionales} % [cite: 294]
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Usabilidad y Accesibilidad:} Interfaces de alta accesibilidad, tipografía legible y navegación simplificada para tenderos de la tercera edad[cite: 295].
+    \item \textbf{Diseño Responsivo:} Visualización adaptable a dispositivos móviles para capacitaciones, toma de pedidos y calificaciones en campo[cite: 296].
+    \item \textbf{Arquitectura Adaptable (Microservicios):} Implementación de servicios aislados y con acoplamiento débil para gestión de roles, autenticación, inventarios y reglas de envío[cite: 297].
+    \item \textbf{Seguridad de Integraciones:} Uso estricto de conexiones cifradas (HTTPS/TLS 1.3) y autenticación robusta (OAuth2/API Keys) para la validación de RUC, conexión a inventarios y facturación[cite: 298].
+    \item \textbf{Rendimiento de Concurrencia:} Latencia menor a 2 segundos en la actualización del stock del inventario[cite: 299].
+    \item \textbf{Integridad Transaccional:} Ejecución atómica de procesos financieros; cualquier fallo en cobros, comisiones o suscripciones ejecutará un "Rollback" automático[cite: 300].
+\end{itemize}
+
+\section{Historias de Usuario / Casos de Uso} % [cite: 301]
+A continuación, se presentan las historias de usuario principales derivadas del análisis[cite: 302]:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{HU-01 (Tendero):} Como tendero, quiero ver el stock de los productos en tiempo real para no realizar pedidos de insumos agotados[cite: 303].
+    \item \textbf{HU-02 (Empresa):} Como empresa proveedora, quiero configurar un límite mínimo de compra para garantizar la rentabilidad de mis despachos[cite: 304].
+    \item \textbf{HU-03 (Vendedor):} Como comercializador, quiero completar un test y ver tutoriales para que el sistema valide mi perfil y me permita operar[cite: 305].
+    \item \textbf{HU-04 (Sistema/Administrador):} Como plataforma, quiero retener el 50\% o 100\% del pago por adelantado para asegurar la transacción y evitar fraudes[cite: 306].
+\end{itemize}
+
+\section{Sprint} % [cite: 307]
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Sprint 1 (Gestión y Seguridad):} Desarrollo del RBAC, registro de empresas, validación de RUC por API y autenticación MFA para vendedores[cite: 308].
+    \item \textbf{Sprint 2 (Catálogo e Inventarios):} Sincronización en tiempo real (latencia < 2s), conexión mediante APIs REST y configuración de límites por empresa[cite: 309].
+    \item \textbf{Sprint 3 (Pedidos y Transacciones):} Carrito de compras accesible, integración de pasarela de pago, reglas dinámicas de envío y ejecución de "Rollbacks" automáticos[cite: 310].
+    \item \textbf{Sprint 4 (Comisiones y Reputación):} Módulo de suscripción anual, motor de cálculo de comisiones (1\%) y sistema de calificaciones cruzadas[cite: 311].
+\end{itemize}
+
+\section{Diagramas: Clases y BD (diseño lógico)} % [cite: 312]
+\textit{Nota: Asegúrate de colocar tu imagen de BD en la misma carpeta que este archivo y descomentar la línea inferior.}
+\begin{center}
+    % \includegraphics[width=\textwidth]{ruta_diagrama_bd.png}
+    \textbf{Figura 1:} Diagrama Lógico de Base de Datos
+\end{center}
+
+\section{Diagrama de componentes} % [cite: 313]
+\textit{Nota: Asegúrate de colocar tu imagen de componentes en la misma carpeta que este archivo y descomentar la línea inferior.}
+\begin{center}
+    % \includegraphics[width=0.8\textwidth]{ruta_diagrama_componentes.png}
+    \textbf{Figura 2:} Diagrama de Componentes
+\end{center}
+
+\section{Arquitectura lógica y física (propuesta)} % [cite: 314]
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Arquitectura Lógica:} El sistema opera bajo un patrón de Microservicios comunicados vía RESTful APIs[cite: 315]. Un "API Gateway" centraliza las peticiones del cliente (Frontend) y las distribuye a servicios aislados (Autenticación, Inventario, Pedidos)[cite: 316]. Esto asegura un acoplamiento débil[cite: 317].
+    \item \textbf{Arquitectura Física:} Los microservicios estarán contenerizados (ej. Docker) y orquestados en un servicio en la nube (AWS, Google Cloud o Azure)[cite: 318]. Para asegurar la latencia menor a 2 segundos, el balanceador de carga distribuirá el tráfico en múltiples instancias del servicio de inventario[cite: 319]. El almacenamiento utilizará un motor relacional sólido y compatible con integridad ACID, como PostgreSQL[cite: 320].
+\end{itemize}
+
+\section{Prototipo de pantallas no funcional} % [cite: 321]
+Para construir el prototipo de pantallas no funcional (wireframes), se recomienda estructurar en herramientas de diseño colaborativo como Figma, enfocándose en las siguientes pantallas clave[cite: 322]:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Pantalla de Login / Onboarding:} Con opciones claras y botones de validación biométrica para el vendedor[cite: 323].
+    \item \textbf{Dashboard del Tendero (Alta Accesibilidad):} Una interfaz con iconos grandes, tipografía legible y alto contraste, mostrando el catálogo de productos y un indicador visual claro del "Stock en tiempo real"[cite: 324].
+    \item \textbf{Pantalla de Checkout / Pago:} Donde se visualice de manera transparente el cálculo dinámico del costo de envío, la retención del 50\% o 100\% anti-estafa, y la confirmación final del pedido[cite: 325].
+    \item \textbf{Panel de Empresa:} Un entorno de administración para configurar el límite mínimo de compra y visualizar reportes de suscripción y comisiones cobradas automáticamente[cite: 326].
+\end{itemize}
+
+\end{document}
