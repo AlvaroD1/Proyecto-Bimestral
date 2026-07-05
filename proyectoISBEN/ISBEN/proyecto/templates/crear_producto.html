@@ -1,0 +1,17 @@
+{% extends "master.html" %}
+
+{% block title %}Crear Producto - ISBEN Solution{% endblock %}
+
+{% block block_title %}Crear Producto{% endblock %}
+
+{% block content %}
+<h2>Agregar Nuevo Producto</h2>
+
+<form action="" method="post">
+  {% csrf_token %}
+  {{ formulario.as_p }}
+  <p><input type="submit" value="Agregar" /></p>
+</form>
+
+[<a href="{% url 'index' %}">Cancelar / Volver</a>]
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "master.html" %}
+
+{% block title %}Inicio - ISBEN Solution{% endblock %}
+
+{% block content %}
+<style>
+  .grid-roles {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .role-card {
+    flex: 1;
+    min-width: 280px;
+    background: #f8fafc;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+  .role-card h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #1e3a8a;
+    padding-bottom: 8px;
+    color: #1e3a8a;
+  }
+  .role-card select {
+    margin-bottom: 12px;
+  }
+  .role-card .btn-link {
+    display: inline-block;
+    margin-top: 15px;
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .role-card .btn-link:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<h2>Selección e Inicio de Sesión de Roles</h2>
+
+<p>Para comenzar a utilizar las funciones de la plataforma, por favor selecciona uno de los perfiles registrados o crea uno nuevo en la sección correspondiente.</p>
+
+<div class="grid-roles">
+  <!-- Columna Proveedores -->
+  <div class="role-card">
+    <h3>Empresa / Proveedor</h3>
+    {% if proveedores %}
+      <form action="{% url 'login_role' %}" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="role" value="proveedor">
+        <p>
+          <label for="proveedor_id">Seleccionar Empresa:</label>
+          <select name="role_id" id="proveedor_id" required>
+            <option value="">-- Seleccionar --</option>
+            {% for prov in proveedores %}
+              <option value="{{ prov.id }}">{{ prov.nombre }} (RUC: {{ prov.ruc }})</option>
+            {% endfor %}
+          </select>
+        </p>
+        <button type="submit" class="btn">Iniciar Sesión</button>
+      </form>
+    {% else %}
+      <p>No hay empresas registradas.</p>
+    {% endif %}
+    <a href="{% url 'crear_proveedor' %}" class="btn-link">+ Registrar Nueva Empresa</a>
+  </div>
+
+  <!-- Columna Vendedores -->
+  <div class="role-card">
+    <h3>Vendedor</h3>
+    {% if vendedores %}
+      <form action="{% url 'login_role' %}" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="role" value="vendedor">
+        <p>
+          <label for="vendedor_id">Seleccionar Vendedor:</label>
+          <select name="role_id" id="vendedor_id" required>
+            <option value="">-- Seleccionar --</option>
+            {% for vend in vendedores %}
+              <option value="{{ vend.id }}">{{ vend.nombre }} (Cédula: {{ vend.cedula }})</option>
+            {% endfor %}
+          </select>
+        </p>
+        <button type="submit" class="btn">Iniciar Sesión</button>
+      </form>
+    {% else %}
+      <p>No hay vendedores registrados.</p>
+    {% endif %}
+    <a href="{% url 'crear_vendedor' %}" class="btn-link">+ Registrar Nuevo Vendedor</a>
+  </div>
+
+  <!-- Columna Compradores -->
+  <div class="role-card">
+    <h3>Comprador / Tendero</h3>
+    {% if compradores %}
+      <form action="{% url 'login_role' %}" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="role" value="comprador">
+        <p>
+          <label for="comprador_id">Seleccionar Comprador:</label>
+          <select name="role_id" id="comprador_id" required>
+            <option value="">-- Seleccionar --</option>
+            {% for comp in compradores %}
+              <option value="{{ comp.id }}">{{ comp.nombre }} (Cédula: {{ comp.cedula }})</option>
+            {% endfor %}
+          </select>
+        </p>
+        <button type="submit" class="btn">Iniciar Sesión</button>
+      </form>
+    {% else %}
+      <p>No hay compradores registrados.</p>
+    {% endif %}
+    <a href="{% url 'crear_comprador' %}" class="btn-link">+ Registrar Nuevo Comprador</a>
+  </div>
+</div>
+
+{% endblock %}

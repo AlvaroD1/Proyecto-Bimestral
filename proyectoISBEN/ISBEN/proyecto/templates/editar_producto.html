@@ -1,0 +1,15 @@
+{% extends "master.html" %}
+
+{% block title %}Editar Producto - ISBEN Solution{% endblock %}
+
+{% block content %}
+<h2>Editar Producto</h2>
+
+<form action="" method="post">
+  {% csrf_token %}
+  {{ formulario.as_p }}
+  <p><input type="submit" value="Guardar Cambios" /></p>
+</form>
+
+[<a href="{% url 'index' %}">Cancelar / Volver</a>]
+{% endblock %}

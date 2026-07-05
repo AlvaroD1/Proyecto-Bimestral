@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>
+      {% block title %}ISBEN Solution{% endblock %}
+    </title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: #f3f4f6;
+        color: #1f2937;
+        margin: 0;
+        padding: 20px;
+        line-height: 1.5;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 30px auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      h1 {
+        color: #1e3a8a;
+        margin-top: 0;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 15px;
+      }
+      h2, h3 {
+        color: #1e3a8a;
+      }
+      nav {
+        margin-bottom: 20px;
+        padding: 10px 15px;
+        background-color: #f8fafc;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+      }
+      nav a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      nav a:hover {
+        text-decoration: underline;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 14px;
+      }
+      th {
+        background-color: #1e3a8a;
+        color: #ffffff;
+        text-align: left;
+        padding: 12px;
+        font-weight: 600;
+      }
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      tr:nth-child(even) {
+        background-color: #f9fafb;
+      }
+      tr:hover {
+        background-color: #f1f5f9;
+      }
+      .btn {
+        display: inline-block;
+        background-color: #2563eb;
+        color: #ffffff;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        text-align: center;
+        transition: background-color 0.2s;
+      }
+      .btn:hover {
+        background-color: #1d4ed8;
+      }
+      .btn-success {
+        background-color: #10b981;
+      }
+      .btn-success:hover {
+        background-color: #059669;
+      }
+      .btn-danger {
+        background-color: #ef4444;
+      }
+      .btn-danger:hover {
+        background-color: #dc2626;
+      }
+      .btn-secondary {
+        background-color: #6b7280;
+      }
+      .btn-secondary:hover {
+        background-color: #4b5563;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .badge-pendiente {
+        background-color: #fef3c7;
+        color: #d97706;
+      }
+      .badge-enviado {
+        background-color: #dbeafe;
+        color: #2563eb;
+      }
+      .badge-recibido {
+        background-color: #d1fae5;
+        color: #059669;
+      }
+      .messages-list {
+        list-style: none;
+        padding: 0;
+        margin: 15px 0;
+      }
+      .message-item {
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+      .message-success {
+        background-color: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      .message-error {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+      }
+      .message-info {
+        background-color: #e0f2fe;
+        color: #075985;
+        border: 1px solid #bae6fd;
+      }
+      footer {
+        margin-top: 30px;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 15px;
+        font-size: 12px;
+        color: #6b7280;
+        text-align: center;
+      }
+      form p {
+        margin: 12px 0;
+      }
+      input[type="text"], input[type="number"], select, textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+      }
+      input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+        border-color: #2563eb;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>ISBEN SOLUTION - Plataforma de Gestión de Insumos</h1>
+      
+      <nav>
+        <a href="{% url 'index' %}">Inicio / Selección de Rol</a>
+        {% if request.session.role %}
+          | Rol Activo: <strong>{{ request.session.role|upper }}</strong> ({{ request.session.role_name }})
+          | <a href="{% url 'logout_role' %}" class="btn btn-danger" style="padding: 3px 8px; font-size: 11px;">Cerrar Sesión</a>
+        {% endif %}
+      </nav>
+      
+      {% if messages %}
+        <ul class="messages-list">
+          {% for message in messages %}
+            <li class="message-item message-{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% block content %}
+      {% endblock %}
+
+    </div>
+  </body>
+</html>

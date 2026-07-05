@@ -1,0 +1,110 @@
+{% extends "master.html" %}
+
+{% block title %}Dashboard Comprador - ISBEN Solution{% endblock %}
+
+{% block content %}
+<h2>Panel de Control: Comprador / Tendero</h2>
+<p>Bienvenido, <strong>{{ comprador.nombre }}</strong>.</p>
+<p><strong>Cédula:</strong> {{ comprador.cedula }} | <strong>Dirección:</strong> {{ comprador.direccion }}</p>
+<p><strong>Total invertido en compras:</strong> <strong style="color: #059669; font-size: 18px;">${{ total_gastado|default:"0.00" }}</strong></p>
+
+<hr>
+
+<h3>Mis Pedidos Realizados</h3>
+{% if pedidos %}
+  <table>
+    <thead>
+      <tr>
+        <th>Nro. Pedido</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+        <th>Total ($)</th>
+        <th>Fecha</th>
+        <th>Estado</th>
+        <th>Confirmación</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ped in pedidos %}
+        <tr>
+          <td>#{{ ped.id }}</td>
+          <td><strong>{{ ped.producto.nombre }}</strong></td>
+          <td>{{ ped.cantidad }}</td>
+          <td>${{ ped.obtener_total }}</td>
+          <td>{{ ped.fecha|date:"d/m/Y" }}</td>
+          <td>
+            <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
+          </td>
+          <td>
+            {% if ped.estado != 'Recibido' %}
+              <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success" style="padding: 4px 8px; font-size: 12px;">Recibí la compra</button>
+              </form>
+            {% else %}
+              <span style="color: #059669; font-weight: bold; font-size: 13px;">✔ Entregado y Recibido</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>Aún no has realizado pedidos.</p>
+{% endif %}
+
+<hr style="margin-top: 30px;">
+
+<h3>Catálogo de Productos (Stock en Tiempo Real)</h3>
+
+{% if productos %}
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Stock Real</th>
+        <th>Precio ($)</th>
+        <th>Proveedor / Distribuidor</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for prod in productos %}
+        <tr>
+          <td><strong>{{ prod.nombre }}</strong></td>
+          <td>{{ prod.descripcion }}</td>
+          <td>
+            {% if prod.cantidad > 0 %}
+              <strong style="color: green;">{{ prod.cantidad }} unidades</strong>
+            {% else %}
+              <strong style="color: red;">Agotado</strong>
+            {% endif %}
+          </td>
+          <td>${{ prod.precio }}</td>
+          <td>
+            {% if prod.proveedor %}
+              {{ prod.proveedor.nombre }}
+            {% else %}
+              <em>Ninguno</em>
+            {% endif %}
+          </td>
+          <td>
+            {% if prod.cantidad > 0 %}
+              <form action="{% url 'comprar_producto' prod.id %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn" style="padding: 6px 12px; font-size: 13px;">Realizar Pedido</button>
+              </form>
+            {% else %}
+              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;" disabled>Sin Stock</button>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No hay productos disponibles en el catálogo en este momento.</p>
+{% endif %}
+
+{% endblock %}

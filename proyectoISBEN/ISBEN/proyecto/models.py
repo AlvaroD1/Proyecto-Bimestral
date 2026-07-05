@@ -8,6 +8,15 @@ class Proveedor(models.Model):
     def __str__(self):
         return "%s - %s" % (self.nombre, self.ruc)
 
+    def obtener_productos(self):
+        return self.productos.all()
+
+    def obtener_pedidos(self):
+        return Pedido.objects.filter(producto__proveedor=self).order_by('-fecha')
+
+    def obtener_cantidad_productos(self):
+        return self.productos.count()
+
     class Meta:
         verbose_name_plural = "Proveedores"
 
@@ -19,6 +28,12 @@ class Vendedor(models.Model):
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)
 
+    def obtener_productos(self):
+        return self.productos.all()
+
+    def obtener_pedidos(self):
+        return Pedido.objects.filter(producto__vendedor=self).order_by('-fecha')
+
     class Meta:
         verbose_name_plural = "Vendedores"
 
@@ -29,6 +44,12 @@ class Comprador(models.Model):
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)
+
+    def obtener_pedidos(self):
+        return self.pedidos.all().order_by('-fecha')
+
+    def obtener_total_gastado(self):
+        return sum(pedido.obtener_total() for pedido in self.pedidos.all())
 
     class Meta:
         verbose_name_plural = "Compradores"
@@ -43,3 +64,24 @@ class Producto(models.Model):
 
     def __str__(self):
         return "%s (Stock: %d)" % (self.nombre, self.cantidad)
+
+    def tiene_stock(self):
+        return self.cantidad > 0
+
+class Pedido(models.Model):
+    ESTADOS = [
+        ('Pendiente', 'Pendiente'),
+        ('Enviado', 'Enviado'),
+        ('Recibido', 'Recibido'),
+    ]
+    comprador = models.ForeignKey(Comprador, on_delete=models.CASCADE, related_name="pedidos")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="pedidos")
+    cantidad = models.IntegerField(default=1)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "Pedido #%d - %s (%s)" % (self.id, self.producto.nombre, self.estado)
+
+    def obtener_total(self):
+        return self.cantidad * self.producto.precio

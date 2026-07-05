@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Proveedor, Vendedor, Comprador, Producto
+from .models import Proveedor, Vendedor, Comprador, Producto, Pedido
 
 class ProveedorAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'ruc', 'direccion')
@@ -18,7 +18,13 @@ class ProductoAdmin(admin.ModelAdmin):
     search_fields = ('nombre',)
     list_filter = ('proveedor', 'vendedor')
 
+class PedidoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'comprador', 'producto', 'cantidad', 'estado', 'fecha')
+    list_filter = ('estado', 'fecha')
+    search_fields = ('comprador__nombre', 'producto__nombre')
+
 admin.site.register(Proveedor, ProveedorAdmin)
 admin.site.register(Vendedor, VendedorAdmin)
 admin.site.register(Comprador, CompradorAdmin)
 admin.site.register(Producto, ProductoAdmin)
+admin.site.register(Pedido, PedidoAdmin)

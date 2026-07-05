@@ -1,0 +1,100 @@
+{% extends "master.html" %}
+
+{% block title %}Dashboard Vendedor - ISBEN Solution{% endblock %}
+
+{% block content %}
+<h2>Panel de Control: Vendedor</h2>
+<p>Bienvenido, <strong>{{ vendedor.nombre }}</strong>.</p>
+<p><strong>Cédula:</strong> {{ vendedor.cedula }} | <strong>Teléfono:</strong> {{ vendedor.telefono|default:"No registrado" }}</p>
+
+<hr>
+
+<h3>Pedidos de tus Productos</h3>
+{% if pedidos %}
+  <table>
+    <thead>
+      <tr>
+        <th>Nro. Pedido</th>
+        <th>Comprador / Cliente</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+        <th>Total ($)</th>
+        <th>Fecha</th>
+        <th>Estado</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ped in pedidos %}
+        <tr>
+          <td>#{{ ped.id }}</td>
+          <td>{{ ped.comprador.nombre }}</td>
+          <td><strong>{{ ped.producto.nombre }}</strong></td>
+          <td>{{ ped.cantidad }}</td>
+          <td>${{ ped.obtener_total }}</td>
+          <td>{{ ped.fecha|date:"d/m/Y" }}</td>
+          <td>
+            <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
+          </td>
+          <td>
+            {% if ped.estado == 'Pendiente' %}
+              <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success" style="padding: 4px 8px; font-size: 12px;">Despachar / Enviar</button>
+              </form>
+            {% else %}
+              <span style="font-size: 12px; color: #6b7280; font-style: italic;">Sin acciones</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No has recibido ningún pedido asignado a ti por el momento.</p>
+{% endif %}
+
+<hr style="margin-top: 30px;">
+
+<h3>Productos Asignados a ti</h3>
+<p><a href="{% url 'crear_producto' %}" class="btn">+ Registrar Nuevo Producto para Vender</a></p>
+
+{% if productos %}
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Cantidad (Stock)</th>
+        <th>Precio ($)</th>
+        <th>Proveedor</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for prod in productos %}
+        <tr>
+          <td><strong>{{ prod.nombre }}</strong></td>
+          <td>{{ prod.descripcion }}</td>
+          <td>{{ prod.cantidad }}</td>
+          <td>${{ prod.precio }}</td>
+          <td>
+            {% if prod.proveedor %}
+              {{ prod.proveedor.nombre }}
+            {% else %}
+              <em>Ninguno</em>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Editar</a>
+            <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger" style="padding: 4px 10px; font-size: 12px;" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No tienes productos asignados para la venta en este momento.</p>
+{% endif %}
+
+{% endblock %}
