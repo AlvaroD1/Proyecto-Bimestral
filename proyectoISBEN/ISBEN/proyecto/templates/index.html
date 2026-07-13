@@ -4,119 +4,145 @@
 
 {% block content %}
 <style>
-  .grid-roles {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-top: 20px;
+  .portal-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
   }
-  .role-card {
-    flex: 1;
-    min-width: 280px;
-    background: #f8fafc;
-    padding: 20px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    box-sizing: border-box;
+  @media (max-width: 768px) {
+    .portal-container {
+      grid-template-columns: 1fr;
+    }
   }
-  .role-card h3 {
+  .login-section {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+  .login-section h3 {
     margin-top: 0;
-    border-bottom: 2px solid #1e3a8a;
-    padding-bottom: 8px;
-    color: #1e3a8a;
+    margin-bottom: 20px;
+    color: var(--primary-dark);
+    font-size: 20px;
+    font-weight: 700;
   }
-  .role-card select {
-    margin-bottom: 12px;
+  .register-section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: var(--text-main);
+    font-size: 20px;
+    font-weight: 700;
   }
-  .role-card .btn-link {
-    display: inline-block;
-    margin-top: 15px;
-    color: #2563eb;
+  .register-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .reg-card {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease-in-out;
     text-decoration: none;
-    font-size: 13px;
-    font-weight: 500;
+    color: inherit;
   }
-  .role-card .btn-link:hover {
-    text-decoration: underline;
+  .reg-card:hover {
+    border-color: var(--primary-light);
+    background: #f0f9ff;
+    transform: translateX(4px);
+  }
+  .reg-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .reg-card-title {
+    font-weight: 600;
+    color: var(--primary-dark);
+    font-size: 16px;
+  }
+  .reg-card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .reg-card-icon {
+    font-size: 24px;
+    background: rgba(30, 64, 175, 0.08);
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: all 0.2s;
+  }
+  .reg-card:hover .reg-card-icon {
+    background: var(--primary);
+    color: white;
   }
 </style>
 
-<h2>Selección e Inicio de Sesión de Roles</h2>
-
-<p>Para comenzar a utilizar las funciones de la plataforma, por favor selecciona uno de los perfiles registrados o crea uno nuevo en la sección correspondiente.</p>
-
-<div class="grid-roles">
-  <!-- Columna Proveedores -->
-  <div class="role-card">
-    <h3>Empresa / Proveedor</h3>
-    {% if proveedores %}
-      <form action="{% url 'login_role' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="role" value="proveedor">
-        <p>
-          <label for="proveedor_id">Seleccionar Empresa:</label>
-          <select name="role_id" id="proveedor_id" required>
-            <option value="">-- Seleccionar --</option>
-            {% for prov in proveedores %}
-              <option value="{{ prov.id }}">{{ prov.nombre }} (RUC: {{ prov.ruc }})</option>
-            {% endfor %}
-          </select>
-        </p>
-        <button type="submit" class="btn">Iniciar Sesión</button>
-      </form>
-    {% else %}
-      <p>No hay empresas registradas.</p>
-    {% endif %}
-    <a href="{% url 'crear_proveedor' %}" class="btn-link">+ Registrar Nueva Empresa</a>
+<div class="portal-container">
+  <!-- Login Section -->
+  <div class="login-section">
+    <h3>Iniciar Sesión</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 25px;">
+      Ingresa tus credenciales para acceder a tu panel de control de acuerdo a tu rol registrado.
+    </p>
+    <form action="{% url 'login_role' %}" method="post">
+      {% csrf_token %}
+      <p>
+        <label for="id_usuario">Nombre de Usuario:</label>
+        <input type="text" name="usuario" id="id_usuario" placeholder="Ej. juanperez" required>
+      </p>
+      <p>
+        <label for="id_contrasenia">Contraseña:</label>
+        <input type="password" name="contrasenia" id="id_contrasenia" placeholder="••••••••" required>
+      </p>
+      <div style="margin-top: 25px;">
+        <button type="submit" class="btn" style="width: 100%;">Ingresar al Sistema</button>
+      </div>
+    </form>
   </div>
 
-  <!-- Columna Vendedores -->
-  <div class="role-card">
-    <h3>Vendedor</h3>
-    {% if vendedores %}
-      <form action="{% url 'login_role' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="role" value="vendedor">
-        <p>
-          <label for="vendedor_id">Seleccionar Vendedor:</label>
-          <select name="role_id" id="vendedor_id" required>
-            <option value="">-- Seleccionar --</option>
-            {% for vend in vendedores %}
-              <option value="{{ vend.id }}">{{ vend.nombre }} (Cédula: {{ vend.cedula }})</option>
-            {% endfor %}
-          </select>
-        </p>
-        <button type="submit" class="btn">Iniciar Sesión</button>
-      </form>
-    {% else %}
-      <p>No hay vendedores registrados.</p>
-    {% endif %}
-    <a href="{% url 'crear_vendedor' %}" class="btn-link">+ Registrar Nuevo Vendedor</a>
-  </div>
+  <!-- Registration Section -->
+  <div class="register-section">
+    <h3>¿No tienes una cuenta?</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 25px;">
+      Selecciona tu perfil de trabajo y completa el formulario de registro para empezar.
+    </p>
+    <div class="register-cards">
+      <a href="{% url 'crear_proveedor' %}" class="reg-card">
+        <div class="reg-card-content">
+          <span class="reg-card-title">Empresa / Proveedor</span>
+          <span class="reg-card-desc">Suministra e ingresa productos al stock del sistema.</span>
+        </div>
+        <span class="reg-card-icon">🏢</span>
+      </a>
 
-  <!-- Columna Compradores -->
-  <div class="role-card">
-    <h3>Comprador / Tendero</h3>
-    {% if compradores %}
-      <form action="{% url 'login_role' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="role" value="comprador">
-        <p>
-          <label for="comprador_id">Seleccionar Comprador:</label>
-          <select name="role_id" id="comprador_id" required>
-            <option value="">-- Seleccionar --</option>
-            {% for comp in compradores %}
-              <option value="{{ comp.id }}">{{ comp.nombre }} (Cédula: {{ comp.cedula }})</option>
-            {% endfor %}
-          </select>
-        </p>
-        <button type="submit" class="btn">Iniciar Sesión</button>
-      </form>
-    {% else %}
-      <p>No hay compradores registrados.</p>
-    {% endif %}
-    <a href="{% url 'crear_comprador' %}" class="btn-link">+ Registrar Nuevo Comprador</a>
+      <a href="{% url 'crear_vendedor' %}" class="reg-card">
+        <div class="reg-card-content">
+          <span class="reg-card-title">Vendedor Autorizado</span>
+          <span class="reg-card-desc">Gestiona ventas, despacha pedidos y actualiza stock.</span>
+        </div>
+        <span class="reg-card-icon">🤝</span>
+      </a>
+
+      <a href="{% url 'crear_comprador' %}" class="reg-card">
+        <div class="reg-card-content">
+          <span class="reg-card-title">Comprador / Tendero</span>
+          <span class="reg-card-desc">Explora el catálogo en tiempo real y realiza pedidos directos.</span>
+        </div>
+        <span class="reg-card-icon">🛒</span>
+      </a>
+    </div>
   </div>
 </div>
-
 {% endblock %}

@@ -4,6 +4,8 @@ class Proveedor(models.Model):
     nombre = models.CharField(max_length=100)
     ruc = models.CharField(max_length=13, unique=True)
     direccion = models.CharField(max_length=200)
+    usuario = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    contrasenia = models.CharField(max_length=128, null=True, blank=True)
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.ruc)
@@ -24,6 +26,8 @@ class Vendedor(models.Model):
     nombre = models.CharField(max_length=100)
     cedula = models.CharField(max_length=10, unique=True)
     telefono = models.CharField(max_length=15, blank=True, null=True)
+    usuario = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    contrasenia = models.CharField(max_length=128, null=True, blank=True)
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)
@@ -41,6 +45,8 @@ class Comprador(models.Model):
     nombre = models.CharField(max_length=100)
     cedula = models.CharField(max_length=10, unique=True)
     direccion = models.CharField(max_length=200)
+    usuario = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    contrasenia = models.CharField(max_length=128, null=True, blank=True)
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)

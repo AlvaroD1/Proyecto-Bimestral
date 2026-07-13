@@ -3,98 +3,125 @@
 {% block title %}Dashboard Vendedor - ISBEN Solution{% endblock %}
 
 {% block content %}
-<h2>Panel de Control: Vendedor</h2>
-<p>Bienvenido, <strong>{{ vendedor.nombre }}</strong>.</p>
-<p><strong>Cédula:</strong> {{ vendedor.cedula }} | <strong>Teléfono:</strong> {{ vendedor.telefono|default:"No registrado" }}</p>
+<h2>🤝 Panel de Control: Vendedor Autorizado</h2>
+<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">
+  Bienvenido, <strong>{{ vendedor.nombre }}</strong>. Gestiona las ventas, despacha pedidos y visualiza tus productos asignados.
+</p>
 
-<hr>
+<!-- Metrics Section -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span class="metric-title">Productos para la Venta</span>
+    <span class="metric-value">{{ productos.count }}</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-title">Pedidos Asignados</span>
+    <span class="metric-value">{{ pedidos.count }}</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-title">Cédula</span>
+    <span class="metric-value" style="font-size: 20px; font-weight: 700; margin-top: 5px;">{{ vendedor.cedula }}</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-title">Teléfono de Contacto</span>
+    <span class="metric-value" style="font-size: 16px; color: var(--text-muted); font-weight: 500; margin-top: 5px;">{{ vendedor.telefono|default:"No registrado" }}</span>
+  </div>
+</div>
 
-<h3>Pedidos de tus Productos</h3>
+<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
+
+<h3 style="margin-bottom: 20px;">📋 Pedidos de tus Productos</h3>
 {% if pedidos %}
-  <table>
-    <thead>
-      <tr>
-        <th>Nro. Pedido</th>
-        <th>Comprador / Cliente</th>
-        <th>Producto</th>
-        <th>Cantidad</th>
-        <th>Total ($)</th>
-        <th>Fecha</th>
-        <th>Estado</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for ped in pedidos %}
+  <div class="table-responsive">
+    <table>
+      <thead>
         <tr>
-          <td>#{{ ped.id }}</td>
-          <td>{{ ped.comprador.nombre }}</td>
-          <td><strong>{{ ped.producto.nombre }}</strong></td>
-          <td>{{ ped.cantidad }}</td>
-          <td>${{ ped.obtener_total }}</td>
-          <td>{{ ped.fecha|date:"d/m/Y" }}</td>
-          <td>
-            <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
-          </td>
-          <td>
-            {% if ped.estado == 'Pendiente' %}
-              <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success" style="padding: 4px 8px; font-size: 12px;">Despachar / Enviar</button>
-              </form>
-            {% else %}
-              <span style="font-size: 12px; color: #6b7280; font-style: italic;">Sin acciones</span>
-            {% endif %}
-          </td>
+          <th>Nro. Pedido</th>
+          <th>Comprador / Cliente</th>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Total</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th style="text-align: right;">Acción</th>
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for ped in pedidos %}
+          <tr>
+            <td style="font-weight: bold; color: var(--text-muted);">#{{ ped.id }}</td>
+            <td>{{ ped.comprador.nombre }}</td>
+            <td><strong>{{ ped.producto.nombre }}</strong></td>
+            <td>{{ ped.cantidad }}</td>
+            <td style="font-weight: 600; color: var(--success-dark);">${{ ped.obtener_total }}</td>
+            <td>{{ ped.fecha|date:"d/m/Y H:i" }}</td>
+            <td>
+              <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
+            </td>
+            <td style="text-align: right;">
+              {% if ped.estado == 'Pendiente' %}
+                <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm">Despachar / Enviar</button>
+                </form>
+              {% else %}
+                <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Sin acciones</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% else %}
-  <p>No has recibido ningún pedido asignado a ti por el momento.</p>
+  <p style="color: var(--text-muted); font-style: italic;">No has recibido ningún pedido asignado a ti por el momento.</p>
 {% endif %}
 
-<hr style="margin-top: 30px;">
+<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
 
-<h3>Productos Asignados a ti</h3>
-<p><a href="{% url 'crear_producto' %}" class="btn">+ Registrar Nuevo Producto para Vender</a></p>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <h3 style="margin: 0;">📦 Productos Asignados a ti</h3>
+  <a href="{% url 'crear_producto' %}" class="btn">+ Registrar Producto para Vender</a>
+</div>
 
 {% if productos %}
-  <table>
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Descripción</th>
-        <th>Cantidad (Stock)</th>
-        <th>Precio ($)</th>
-        <th>Proveedor</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for prod in productos %}
+  <div class="table-responsive">
+    <table>
+      <thead>
         <tr>
-          <td><strong>{{ prod.nombre }}</strong></td>
-          <td>{{ prod.descripcion }}</td>
-          <td>{{ prod.cantidad }}</td>
-          <td>${{ prod.precio }}</td>
-          <td>
-            {% if prod.proveedor %}
-              {{ prod.proveedor.nombre }}
-            {% else %}
-              <em>Ninguno</em>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Editar</a>
-            <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger" style="padding: 4px 10px; font-size: 12px;" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
-          </td>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Stock (Cantidad)</th>
+          <th>Precio ($)</th>
+          <th>Proveedor / Empresa</th>
+          <th style="text-align: right;">Acciones</th>
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for prod in productos %}
+          <tr>
+            <td><strong>{{ prod.nombre }}</strong></td>
+            <td>{{ prod.descripcion }}</td>
+            <td>{{ prod.cantidad }}</td>
+            <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
+            <td>
+              {% if prod.proveedor %}
+                <span class="badge" style="background-color: #f1f5f9; color: #475569; border-color: #cbd5e1;">{{ prod.proveedor.nombre }}</span>
+              {% else %}
+                <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary btn-sm">Editar</a>
+              <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% else %}
-  <p>No tienes productos asignados para la venta en este momento.</p>
+  <p style="color: var(--text-muted); font-style: italic;">No tienes productos asignados para la venta en este momento.</p>
 {% endif %}
 
 {% endblock %}

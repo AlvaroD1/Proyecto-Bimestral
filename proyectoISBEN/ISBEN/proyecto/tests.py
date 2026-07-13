@@ -12,18 +12,23 @@ class ISBENTestCase(TestCase):
         response = self.client.post(reverse('crear_proveedor'), {
             'nombre': 'Distribuidora Alpina',
             'ruc': '1792345678001',
-            'direccion': 'Av. Amazonas 123'
+            'direccion': 'Av. Amazonas 123',
+            'usuario': 'alpina_prov',
+            'contrasenia': 'Alpina123'
         })
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Proveedor.objects.count(), 1)
         proveedor = Proveedor.objects.first()
         self.assertEqual(proveedor.nombre, 'Distribuidora Alpina')
+        self.assertEqual(proveedor.usuario, 'alpina_prov')
 
         # 2. Registrar Vendedor
         response = self.client.post(reverse('crear_vendedor'), {
             'nombre': 'Juan Perez',
             'cedula': '1723456789',
-            'telefono': '0999999999'
+            'telefono': '0999999999',
+            'usuario': 'juan_vend',
+            'contrasenia': 'Juan1234'
         })
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Vendedor.objects.count(), 1)
@@ -33,7 +38,9 @@ class ISBENTestCase(TestCase):
         response = self.client.post(reverse('crear_comprador'), {
             'nombre': 'Tienda Don Bosco',
             'cedula': '1712345678',
-            'direccion': 'Calle Loja y Sucre'
+            'direccion': 'Calle Loja y Sucre',
+            'usuario': 'bosco_comp',
+            'contrasenia': 'Bosco123'
         })
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Comprador.objects.count(), 1)
@@ -41,8 +48,8 @@ class ISBENTestCase(TestCase):
 
         # 4. Iniciar sesión como Proveedor
         response = self.client.post(reverse('login_role'), {
-            'role': 'proveedor',
-            'role_id': proveedor.id
+            'usuario': 'alpina_prov',
+            'contrasenia': 'Alpina123'
         })
         self.assertEqual(response.status_code, 302)
         session = self.client.session
@@ -72,10 +79,12 @@ class ISBENTestCase(TestCase):
 
         # 7. Iniciar Sesión como Comprador
         response = self.client.post(reverse('login_role'), {
-            'role': 'comprador',
-            'role_id': comprador.id
+            'usuario': 'bosco_comp',
+            'contrasenia': 'Bosco123'
         })
         self.assertEqual(response.status_code, 302)
+        session = self.client.session
+        self.assertEqual(session.get('role'), 'comprador')
 
         # 8. Comprar Producto (crea Pedido en estado Pendiente)
         response = self.client.post(reverse('comprar_producto', args=[producto.id]))
@@ -98,8 +107,8 @@ class ISBENTestCase(TestCase):
 
         # 10. Iniciar sesión como Proveedor para despachar el pedido
         response = self.client.post(reverse('login_role'), {
-            'role': 'proveedor',
-            'role_id': proveedor.id
+            'usuario': 'alpina_prov',
+            'contrasenia': 'Alpina123'
         })
         self.assertEqual(response.status_code, 302)
         
@@ -116,8 +125,8 @@ class ISBENTestCase(TestCase):
 
         # 12. Iniciar sesión como Comprador para confirmar la recepción
         response = self.client.post(reverse('login_role'), {
-            'role': 'comprador',
-            'role_id': comprador.id
+            'usuario': 'bosco_comp',
+            'contrasenia': 'Bosco123'
         })
         self.assertEqual(response.status_code, 302)
         
@@ -129,3 +138,39 @@ class ISBENTestCase(TestCase):
         self.assertEqual(pedido.estado, 'Recibido')
         
         self.assertEqual(comprador.obtener_total_gastado(), Decimal('1.20'))
+
+    def test_password_strength_validation(self):
+        # Intentar registrar Proveedor con contraseña débil (sin números/mayúsculas)
+        response = self.client.post(reverse('crear_proveedor'), {
+            'nombre': 'Distribuidora Alpina',
+            'ruc': '1792345678001',
+            'direccion': 'Av. Amazonas 123',
+            'usuario': 'alpina_bad',
+            'contrasenia': 'password'
+        })
+        # Debe fallar la validación y recargar la página (código 200, no 302 redirect)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Proveedor.objects.filter(usuario='alpina_bad').count(), 0)
+
+    def test_unique_username_across_roles(self):
+        # Registrar un comprador con el usuario 'test_user'
+        self.client.post(reverse('crear_comprador'), {
+            'nombre': 'Tienda Don Bosco',
+            'cedula': '1712345678',
+            'direccion': 'Calle Loja y Sucre',
+            'usuario': 'test_user',
+            'contrasenia': 'Bosco123'
+        })
+        self.assertEqual(Comprador.objects.filter(usuario='test_user').count(), 1)
+
+        # Intentar registrar un vendedor con el mismo usuario 'test_user'
+        response = self.client.post(reverse('crear_vendedor'), {
+            'nombre': 'Juan Perez',
+            'cedula': '1723456789',
+            'telefono': '0999999999',
+            'usuario': 'test_user',
+            'contrasenia': 'Juan1234'
+        })
+        # Debe fallar (200 OK en lugar de 302)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Vendedor.objects.filter(usuario='test_user').count(), 0)

@@ -1,23 +1,168 @@
-from django.forms import ModelForm
 from django import forms
+from django.contrib.auth.hashers import make_password
 from .models import Proveedor, Vendedor, Comprador, Producto
 
-class ProveedorForm(ModelForm):
+def validar_usuario_unico(usuario, current_id=None, current_role=None):
+    # Check Proveedor (exclude current if role matches)
+    prov_qs = Proveedor.objects.filter(usuario=usuario)
+    if current_role == 'proveedor' and current_id:
+        prov_qs = prov_qs.exclude(id=current_id)
+    if prov_qs.exists():
+        return False
+
+    # Check Vendedor (exclude current if role matches)
+    vend_qs = Vendedor.objects.filter(usuario=usuario)
+    if current_role == 'vendedor' and current_id:
+        vend_qs = vend_qs.exclude(id=current_id)
+    if vend_qs.exists():
+        return False
+
+    # Check Comprador (exclude current if role matches)
+    comp_qs = Comprador.objects.filter(usuario=usuario)
+    if current_role == 'comprador' and current_id:
+        comp_qs = comp_qs.exclude(id=current_id)
+    if comp_qs.exists():
+        return False
+
+    return True
+
+def validar_contrasenia_fuerte(contrasenia):
+    tiene_mayuscula = any(c.isupper() for c in contrasenia)
+    tiene_minuscula = any(c.islower() for c in contrasenia)
+    tiene_numero = any(c.isdigit() for c in contrasenia)
+    return tiene_mayuscula and tiene_minuscula and tiene_numero
+
+class ProveedorForm(forms.ModelForm):
     class Meta:
         model = Proveedor
-        fields = ['nombre', 'ruc', 'direccion']
+        fields = ['nombre', 'ruc', 'direccion', 'usuario', 'contrasenia']
+        widgets = {
+            'contrasenia': forms.PasswordInput(),
+        }
+        labels = {
+            'nombre': 'Nombre / Razón Social',
+            'ruc': 'RUC',
+            'direccion': 'Dirección',
+            'usuario': 'Nombre de Usuario',
+            'contrasenia': 'Contraseña',
+        }
 
-class VendedorForm(ModelForm):
+    def clean_usuario(self):
+        usuario = self.cleaned_data.get('usuario')
+        if not usuario:
+            raise forms.ValidationError("El nombre de usuario es obligatorio.")
+        
+        current_id = self.instance.id if self.instance and self.instance.id else None
+        if not validar_usuario_unico(usuario, current_id, 'proveedor'):
+            raise forms.ValidationError("Este nombre de usuario ya está registrado por otro usuario.")
+        return usuario
+
+    def clean_contrasenia(self):
+        contrasenia = self.cleaned_data.get('contrasenia')
+        if not contrasenia:
+            raise forms.ValidationError("La contraseña es obligatoria.")
+        
+        if not validar_contrasenia_fuerte(contrasenia):
+            raise forms.ValidationError(
+                "La contraseña debe contener al menos una letra mayúscula, una letra minúscula y un número."
+            )
+        return contrasenia
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.contrasenia = make_password(self.cleaned_data['contrasenia'])
+        if commit:
+            instance.save()
+        return instance
+
+class VendedorForm(forms.ModelForm):
     class Meta:
         model = Vendedor
-        fields = ['nombre', 'cedula', 'telefono']
+        fields = ['nombre', 'cedula', 'telefono', 'usuario', 'contrasenia']
+        widgets = {
+            'contrasenia': forms.PasswordInput(),
+        }
+        labels = {
+            'nombre': 'Nombre Completo',
+            'cedula': 'Cédula',
+            'telefono': 'Teléfono',
+            'usuario': 'Nombre de Usuario',
+            'contrasenia': 'Contraseña',
+        }
 
-class CompradorForm(ModelForm):
+    def clean_usuario(self):
+        usuario = self.cleaned_data.get('usuario')
+        if not usuario:
+            raise forms.ValidationError("El nombre de usuario es obligatorio.")
+        
+        current_id = self.instance.id if self.instance and self.instance.id else None
+        if not validar_usuario_unico(usuario, current_id, 'vendedor'):
+            raise forms.ValidationError("Este nombre de usuario ya está registrado por otro usuario.")
+        return usuario
+
+    def clean_contrasenia(self):
+        contrasenia = self.cleaned_data.get('contrasenia')
+        if not contrasenia:
+            raise forms.ValidationError("La contraseña es obligatoria.")
+        
+        if not validar_contrasenia_fuerte(contrasenia):
+            raise forms.ValidationError(
+                "La contraseña debe contener al menos una letra mayúscula, una letra minúscula y un número."
+            )
+        return contrasenia
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.contrasenia = make_password(self.cleaned_data['contrasenia'])
+        if commit:
+            instance.save()
+        return instance
+
+class CompradorForm(forms.ModelForm):
     class Meta:
         model = Comprador
-        fields = ['nombre', 'cedula', 'direccion']
+        fields = ['nombre', 'cedula', 'direccion', 'usuario', 'contrasenia']
+        widgets = {
+            'contrasenia': forms.PasswordInput(),
+        }
+        labels = {
+            'nombre': 'Nombre Completo',
+            'cedula': 'Cédula',
+            'direccion': 'Dirección',
+            'usuario': 'Nombre de Usuario',
+            'contrasenia': 'Contraseña',
+        }
 
-class ProductoForm(ModelForm):
+    def clean_usuario(self):
+        usuario = self.cleaned_data.get('usuario')
+        if not usuario:
+            raise forms.ValidationError("El nombre de usuario es obligatorio.")
+        
+        current_id = self.instance.id if self.instance and self.instance.id else None
+        if not validar_usuario_unico(usuario, current_id, 'comprador'):
+            raise forms.ValidationError("Este nombre de usuario ya está registrado por otro usuario.")
+        return usuario
+
+    def clean_contrasenia(self):
+        contrasenia = self.cleaned_data.get('contrasenia')
+        if not contrasenia:
+            raise forms.ValidationError("La contraseña es obligatoria.")
+        
+        if not validar_contrasenia_fuerte(contrasenia):
+            raise forms.ValidationError(
+                "La contraseña debe contener al menos una letra mayúscula, una letra minúscula y un número."
+            )
+        return contrasenia
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.contrasenia = make_password(self.cleaned_data['contrasenia'])
+        if commit:
+            instance.save()
+        return instance
+
+class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
         fields = ['nombre', 'descripcion', 'cantidad', 'precio', 'proveedor', 'vendedor']
+

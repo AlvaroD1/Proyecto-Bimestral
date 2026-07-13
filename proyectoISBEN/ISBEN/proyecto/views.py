@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth.hashers import check_password
 from .models import Proveedor, Vendedor, Comprador, Producto, Pedido
 from .forms import ProveedorForm, VendedorForm, CompradorForm, ProductoForm
 
@@ -14,38 +15,54 @@ def index(request):
         elif role == 'comprador':
             return redirect('dashboard_comprador')
 
-    proveedores = Proveedor.objects.all()
-    vendedores = Vendedor.objects.all()
-    compradores = Comprador.objects.all()
-    
-    contexto = {
-        'proveedores': proveedores,
-        'vendedores': vendedores,
-        'compradores': compradores,
-    }
-    return render(request, 'index.html', contexto)
+    return render(request, 'index.html')
 
 def login_role(request):
     if request.method == 'POST':
-        role = request.POST.get('role')
-        role_id = request.POST.get('role_id')
-        if role and role_id:
+        usuario = request.POST.get('usuario')
+        contrasenia = request.POST.get('contrasenia')
+        
+        if not usuario or not contrasenia:
+            messages.error(request, "Por favor ingrese su usuario y contraseña.")
+            return redirect('index')
+            
+        user_obj = None
+        role = None
+        
+        # Check Proveedor
+        prov = Proveedor.objects.filter(usuario=usuario).first()
+        if prov and check_password(contrasenia, prov.contrasenia):
+            user_obj = prov
+            role = 'proveedor'
+            
+        # Check Vendedor
+        if not user_obj:
+            vend = Vendedor.objects.filter(usuario=usuario).first()
+            if vend and check_password(contrasenia, vend.contrasenia):
+                user_obj = vend
+                role = 'vendedor'
+                
+        # Check Comprador
+        if not user_obj:
+            comp = Comprador.objects.filter(usuario=usuario).first()
+            if comp and check_password(contrasenia, comp.contrasenia):
+                user_obj = comp
+                role = 'comprador'
+                
+        if user_obj:
+            request.session['role'] = role
+            request.session['role_id'] = user_obj.id
+            request.session['role_name'] = user_obj.nombre
+            messages.success(request, f"¡Sesión iniciada como {role.capitalize()}: {user_obj.nombre}!")
             if role == 'proveedor':
-                obj = get_object_or_404(Proveedor, pk=role_id)
-                request.session['role'] = 'proveedor'
-                request.session['role_id'] = obj.id
-                request.session['role_name'] = obj.nombre
+                return redirect('dashboard_proveedor')
             elif role == 'vendedor':
-                obj = get_object_or_404(Vendedor, pk=role_id)
-                request.session['role'] = 'vendedor'
-                request.session['role_id'] = obj.id
-                request.session['role_name'] = obj.nombre
+                return redirect('dashboard_vendedor')
             elif role == 'comprador':
-                obj = get_object_or_404(Comprador, pk=role_id)
-                request.session['role'] = 'comprador'
-                request.session['role_id'] = obj.id
-                request.session['role_name'] = obj.nombre
-            messages.success(request, f"Sesión iniciada como {role.capitalize()}: {obj.nombre}")
+                return redirect('dashboard_comprador')
+        else:
+            messages.error(request, "Usuario o contraseña incorrectos.")
+            
     return redirect('index')
 
 def logout_role(request):
@@ -53,8 +70,9 @@ def logout_role(request):
     request.session.pop('role_id', None)
     request.session.pop('role_name', None)
     if role:
-        messages.info(request, f"Sesión de {role.capitalize()} cerrada.")
+        messages.info(request, "Sesión cerrada correctamente.")
     return redirect('index')
+
 
 def dashboard_proveedor(request):
     role = request.session.get('role')
