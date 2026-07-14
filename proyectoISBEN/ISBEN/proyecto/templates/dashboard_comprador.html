@@ -113,14 +113,17 @@
             </td>
             <td style="text-align: right;">
               {% if prod.cantidad > 0 %}
-                <form action="{% url 'comprar_producto' prod.id %}" method="post" style="display:inline;">
+                <form action="{% url 'comprar_producto' prod.id %}" method="post" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
                   {% csrf_token %}
+                  <label for="cantidad_{{ prod.id }}" style="margin: 0; font-size: 13px; color: var(--text-muted);">Cant:</label>
+                  <input type="number" name="cantidad" id="cantidad_{{ prod.id }}" value="1" min="1" max="{{ prod.cantidad }}" style="width: 60px; padding: 4px 6px; border-radius: 6px; margin: 0; text-align: center; border: 1px solid var(--border-color);" required>
                   <button type="submit" class="btn btn-sm">Realizar Pedido</button>
                 </form>
               {% else %}
                 <button class="btn btn-secondary btn-sm" disabled>Sin Stock</button>
               {% endif %}
             </td>
+
           </tr>
         {% endfor %}
       </tbody>

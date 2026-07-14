@@ -174,3 +174,115 @@ class ISBENTestCase(TestCase):
         # Debe fallar (200 OK en lugar de 302)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Vendedor.objects.filter(usuario='test_user').count(), 0)
+
+    def test_postulacion_and_aprobacion_flow(self):
+        from django.contrib.auth.hashers import make_password
+        # 1. Crear Proveedor, Vendedor y Producto
+        proveedor = Proveedor.objects.create(
+            nombre="Coca-Cola Test", ruc="1791111111001", direccion="UIO",
+            usuario="cocacola_test", contrasenia=make_password("CocaCola1")
+        )
+        vendedor_bueno = Vendedor.objects.create(
+            nombre="Carlos Pérez", cedula="1725555551", usuario="carlos_bueno_t",
+            contrasenia=make_password("VendedorGood1"), reputacion="Excelente", calificacion=4.90
+        )
+        vendedor_malo = Vendedor.objects.create(
+            nombre="Juan Rodríguez", cedula="1725555552", usuario="juan_malo_t",
+            contrasenia=make_password("VendedorBad1"), reputacion="Mala", calificacion=2.10
+        )
+        producto = Producto.objects.create(
+            nombre="Coca-Cola 1.5L", descripcion="Refresco", cantidad=10, precio=1.50, proveedor=proveedor
+        )
+
+        # 2. Iniciar sesión como carlos_bueno_t
+        response = self.client.post(reverse('login_role'), {
+            'usuario': 'carlos_bueno_t',
+            'contrasenia': 'VendedorGood1'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # 3. Postularse al producto
+        from .models import Postulacion
+        response = self.client.post(reverse('postular_producto', args=[producto.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Postulacion.objects.filter(vendedor=vendedor_bueno, producto=producto).count(), 1)
+        postulacion_bueno = Postulacion.objects.get(vendedor=vendedor_bueno, producto=producto)
+        self.assertEqual(postulacion_bueno.estado, 'Pendiente')
+
+        # 4. Cerrar sesión y entrar como juan_malo_t
+        self.client.get(reverse('logout_role'))
+        response = self.client.post(reverse('login_role'), {
+            'usuario': 'juan_malo_t',
+            'contrasenia': 'VendedorBad1'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # 5. Postularse al producto
+        response = self.client.post(reverse('postular_producto', args=[producto.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Postulacion.objects.filter(vendedor=vendedor_malo, producto=producto).count(), 1)
+        postulacion_malo = Postulacion.objects.get(vendedor=vendedor_malo, producto=producto)
+        self.assertEqual(postulacion_malo.estado, 'Pendiente')
+
+        # 6. Iniciar sesión como Proveedor
+        self.client.get(reverse('logout_role'))
+        response = self.client.post(reverse('login_role'), {
+            'usuario': 'cocacola_test',
+            'contrasenia': 'CocaCola1'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # 7. Aprobar postulación de carlos_bueno_t
+        response = self.client.post(reverse('aprobar_postulacion', args=[postulacion_bueno.id]))
+        self.assertEqual(response.status_code, 302)
+
+        # 8. Verificar que el producto tiene a carlos_bueno_t como vendedor
+        producto.refresh_from_db()
+        self.assertEqual(producto.vendedor, vendedor_bueno)
+
+        # 9. Verificar que postulacion_bueno está Aprobado y postulacion_malo está Rechazado
+        postulacion_bueno.refresh_from_db()
+        postulacion_malo.refresh_from_db()
+        self.assertEqual(postulacion_bueno.estado, 'Aprobado')
+        self.assertEqual(postulacion_malo.estado, 'Rechazado')
+
+    def test_compra_cantidad_personalizada(self):
+        from django.contrib.auth.hashers import make_password
+        # 1. Crear Comprador y Producto
+        comprador = Comprador.objects.create(
+            nombre="Don Pepe", cedula="1725555553", direccion="UIO",
+            usuario="don_pepe_t", contrasenia=make_password("DonPepe123")
+        )
+        producto = Producto.objects.create(
+            nombre="Coca-Cola 1.5L", descripcion="Refresco", cantidad=10, precio=1.50
+        )
+
+        # 2. Iniciar sesión como comprador
+        response = self.client.post(reverse('login_role'), {
+            'usuario': 'don_pepe_t',
+            'contrasenia': 'DonPepe123'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        # 3. Comprar cantidad válida (4 unidades)
+        response = self.client.post(reverse('comprar_producto', args=[producto.id]), {'cantidad': 4})
+        self.assertEqual(response.status_code, 302)
+
+        # Verificar stock y pedido
+        producto.refresh_from_db()
+        self.assertEqual(producto.cantidad, 6)
+        self.assertEqual(Pedido.objects.count(), 1)
+        pedido = Pedido.objects.first()
+        self.assertEqual(pedido.cantidad, 4)
+        self.assertEqual(pedido.obtener_total(), Decimal('6.00'))
+
+        # 4. Intentar comprar más que el stock (7 unidades cuando queda 6)
+        response = self.client.post(reverse('comprar_producto', args=[producto.id]), {'cantidad': 7})
+        self.assertEqual(response.status_code, 302)
+
+        # Verificar que el stock sigue siendo 6 y no se ha creado otro pedido
+        producto.refresh_from_db()
+        self.assertEqual(producto.cantidad, 6)
+        self.assertEqual(Pedido.objects.count(), 1)
+
+

@@ -28,6 +28,9 @@ class Vendedor(models.Model):
     telefono = models.CharField(max_length=15, blank=True, null=True)
     usuario = models.CharField(max_length=100, unique=True, null=True, blank=True)
     contrasenia = models.CharField(max_length=128, null=True, blank=True)
+    reputacion = models.CharField(max_length=50, default='Buena')
+    calificacion = models.DecimalField(max_digits=3, decimal_places=2, default=5.0)
+    descripcion_perfil = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)
@@ -91,3 +94,21 @@ class Pedido(models.Model):
 
     def obtener_total(self):
         return self.cantidad * self.producto.precio
+
+class Postulacion(models.Model):
+    ESTADOS = [
+        ('Pendiente', 'Pendiente'),
+        ('Aprobado', 'Aprobado'),
+        ('Rechazado', 'Rechazado'),
+    ]
+    vendedor = models.ForeignKey(Vendedor, on_delete=models.CASCADE, related_name="postulaciones")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="postulaciones")
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('vendedor', 'producto')
+        verbose_name_plural = "Postulaciones"
+
+    def __str__(self):
+        return f"Postulación de {self.vendedor.nombre} para {self.producto.nombre} ({self.estado})"

@@ -25,4 +25,9 @@ urlpatterns = [
     path('producto/comprar/<int:id>/', views.comprar_producto, name='comprar_producto'),
     path('pedido/enviar/<int:id>/', views.enviar_pedido, name='enviar_pedido'),
     path('pedido/recibir/<int:id>/', views.recibir_pedido, name='recibir_pedido'),
+
+    # Postulaciones de Vendedores
+    path('producto/postular/<int:id>/', views.postular_producto, name='postular_producto'),
+    path('postulacion/aprobar/<int:id>/', views.aprobar_postulacion, name='aprobar_postulacion'),
+    path('postulacion/rechazar/<int:id>/', views.rechazar_postulacion, name='rechazar_postulacion'),
 ]

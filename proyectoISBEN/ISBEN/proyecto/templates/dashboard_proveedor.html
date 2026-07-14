@@ -124,4 +124,68 @@
   <p style="color: var(--text-muted); font-style: italic;">No has recibido ningún pedido por el momento.</p>
 {% endif %}
 
+<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+
+<h3 style="margin-bottom: 20px;">📋 Postulaciones de Vendedores</h3>
+<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+  Vendedores que se han postulado para comercializar tus productos. Evalúa su perfil (reputación, calificación y descripción) antes de aprobarlos.
+</p>
+
+{% if postulaciones %}
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Vendedor</th>
+          <th>Reputación</th>
+          <th>Calificación</th>
+          <th>Descripción del Perfil</th>
+          <th>Estado</th>
+          <th style="text-align: right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for post in postulaciones %}
+          <tr>
+            <td><strong>{{ post.producto.nombre }}</strong></td>
+            <td><strong>{{ post.vendedor.nombre }}</strong></td>
+            <td>
+              {% if post.vendedor.reputacion == 'Excelente' or post.vendedor.reputacion == 'Buena' %}
+                <span class="badge badge-recibido">{{ post.vendedor.reputacion }}</span>
+              {% else %}
+                <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;">{{ post.vendedor.reputacion }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-weight: bold; color: var(--warning);">⭐ {{ post.vendedor.calificacion }}/5.00</span>
+            </td>
+            <td style="max-width: 300px; word-wrap: break-word;">{{ post.vendedor.descripcion_perfil|default:"Sin descripción disponible" }}</td>
+            <td>
+              <span class="badge badge-{{ post.estado|lower }}">{{ post.estado }}</span>
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              {% if post.estado == 'Pendiente' %}
+                <form action="{% url 'aprobar_postulacion' post.id %}" method="post" style="display:inline; margin-right: 5px;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
+                </form>
+                <form action="{% url 'rechazar_postulacion' post.id %}" method="post" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
+                </form>
+              {% else %}
+                <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Evaluado</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p style="color: var(--text-muted); font-style: italic;">No tienes postulaciones de vendedores pendientes o recibidas por el momento.</p>
+{% endif %}
+
 {% endblock %}
+

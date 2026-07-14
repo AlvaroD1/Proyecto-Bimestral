@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.hashers import check_password
-from .models import Proveedor, Vendedor, Comprador, Producto, Pedido
+from .models import Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion
 from .forms import ProveedorForm, VendedorForm, CompradorForm, ProductoForm
 
 def index(request):
@@ -84,11 +84,13 @@ def dashboard_proveedor(request):
     # Hacerle preguntas al modelo directamente para obtener info
     productos = proveedor.obtener_productos()
     pedidos = proveedor.obtener_pedidos()
+    postulaciones = Postulacion.objects.filter(producto__proveedor=proveedor).order_by('-fecha')
     
     contexto = {
         'proveedor': proveedor,
         'productos': productos,
         'pedidos': pedidos,
+        'postulaciones': postulaciones,
     }
     return render(request, 'dashboard_proveedor.html', contexto)
 
@@ -103,10 +105,17 @@ def dashboard_vendedor(request):
     productos = vendedor.obtener_productos()
     pedidos = vendedor.obtener_pedidos()
     
+    # Obtener todos los productos de empresas/proveedores disponibles para postular
+    productos_disponibles = Producto.objects.filter(proveedor__isnull=False)
+    postulaciones_dict = {p.producto_id: p for p in Postulacion.objects.filter(vendedor=vendedor)}
+    for prod in productos_disponibles:
+        prod.postulacion = postulaciones_dict.get(prod.id)
+        
     contexto = {
         'vendedor': vendedor,
         'productos': productos,
         'pedidos': pedidos,
+        'productos_disponibles': productos_disponibles,
     }
     return render(request, 'dashboard_vendedor.html', contexto)
 
@@ -164,39 +173,40 @@ def crear_comprador(request):
 def crear_producto(request):
     role = request.session.get('role')
     role_id = request.session.get('role_id')
-    if not role or not role_id:
+    if role != 'proveedor' or not role_id:
+        messages.error(request, "Acceso denegado. Solo las empresas/proveedores pueden registrar productos.")
         return redirect('index')
         
     if request.method == 'POST':
         formulario = ProductoForm(request.POST)
         if formulario.is_valid():
             producto = formulario.save(commit=False)
-            if role == 'proveedor':
-                producto.proveedor = Proveedor.objects.get(pk=role_id)
-            elif role == 'vendedor':
-                producto.vendedor = Vendedor.objects.get(pk=role_id)
+            producto.proveedor = Proveedor.objects.get(pk=role_id)
             producto.save()
+            messages.success(request, f"Producto '{producto.nombre}' registrado con éxito.")
             return redirect('index')
     else:
-        initial = {}
-        if role == 'proveedor':
-            initial['proveedor'] = role_id
-        elif role == 'vendedor':
-            initial['vendedor'] = role_id
-        formulario = ProductoForm(initial=initial)
+        formulario = ProductoForm(initial={'proveedor': role_id})
         
     return render(request, 'crear_producto.html', {'formulario': formulario})
 
 def editar_producto(request, id):
     role = request.session.get('role')
-    if not role:
+    role_id = request.session.get('role_id')
+    if role != 'proveedor' or not role_id:
+        messages.error(request, "Acceso denegado. Solo las empresas/proveedores pueden editar productos.")
         return redirect('index')
         
     producto = get_object_or_404(Producto, pk=id)
+    if producto.proveedor_id != role_id:
+        messages.error(request, "Acceso denegado. Este producto no te pertenece.")
+        return redirect('index')
+
     if request.method == 'POST':
         formulario = ProductoForm(request.POST, instance=producto)
         if formulario.is_valid():
             formulario.save()
+            messages.success(request, f"Producto '{producto.nombre}' actualizado.")
             return redirect('index')
     else:
         formulario = ProductoForm(instance=producto)
@@ -204,10 +214,16 @@ def editar_producto(request, id):
 
 def eliminar_producto(request, id):
     role = request.session.get('role')
-    if not role:
+    role_id = request.session.get('role_id')
+    if role != 'proveedor' or not role_id:
+        messages.error(request, "Acceso denegado. Solo las empresas/proveedores pueden eliminar productos.")
         return redirect('index')
         
     producto = get_object_or_404(Producto, pk=id)
+    if producto.proveedor_id != role_id:
+        messages.error(request, "Acceso denegado. Este producto no te pertenece.")
+        return redirect('index')
+
     producto.delete()
     messages.success(request, f"Producto {producto.nombre} eliminado.")
     return redirect('index')
@@ -222,22 +238,34 @@ def comprar_producto(request, id):
     comprador = get_object_or_404(Comprador, pk=role_id)
     producto = get_object_or_404(Producto, pk=id)
     
-    # Preguntar al modelo Producto si tiene stock
-    if producto.tiene_stock():
-        producto.cantidad -= 1
-        producto.save()
-        
-        # Crear el Pedido en estado Pendiente
-        Pedido.objects.create(
-            comprador=comprador,
-            producto=producto,
-            cantidad=1,
-            estado='Pendiente'
-        )
-        
-        messages.success(request, f"Pedido realizado para 1 unidad de {producto.nombre}. Estado: PENDIENTE")
+    if request.method == 'POST':
+        try:
+            cantidad = int(request.POST.get('cantidad', 1))
+        except (ValueError, TypeError):
+            cantidad = 1
+
+        if cantidad <= 0:
+            messages.error(request, "La cantidad debe ser mayor que 0.")
+            return redirect('dashboard_comprador')
+
+        # Verificar si hay suficiente stock
+        if producto.cantidad >= cantidad:
+            producto.cantidad -= cantidad
+            producto.save()
+            
+            # Crear el Pedido en estado Pendiente
+            Pedido.objects.create(
+                comprador=comprador,
+                producto=producto,
+                cantidad=cantidad,
+                estado='Pendiente'
+            )
+            
+            messages.success(request, f"Pedido realizado para {cantidad} unidad(es) de {producto.nombre}. Estado: PENDIENTE")
+        else:
+            messages.error(request, f"No hay suficiente stock para {producto.nombre}. Stock disponible: {producto.cantidad}")
     else:
-        messages.error(request, f"No hay stock disponible para {producto.nombre}")
+        messages.error(request, "Método no permitido.")
         
     return redirect('dashboard_comprador')
 
@@ -276,3 +304,81 @@ def recibir_pedido(request, id):
         messages.error(request, f"El pedido ya está en estado {pedido.estado}.")
         
     return redirect('dashboard_comprador')
+
+
+def postular_producto(request, id):
+    role = request.session.get('role')
+    role_id = request.session.get('role_id')
+    if role != 'vendedor' or not role_id:
+        messages.error(request, "Solo los vendedores pueden postularse.")
+        return redirect('index')
+        
+    vendedor = get_object_or_404(Vendedor, pk=role_id)
+    producto = get_object_or_404(Producto, pk=id)
+    
+    if not producto.proveedor:
+        messages.error(request, "Este producto no tiene un proveedor asociado.")
+        return redirect('dashboard_vendedor')
+
+    postulacion, created = Postulacion.objects.get_or_create(
+        vendedor=vendedor,
+        producto=producto,
+        defaults={'estado': 'Pendiente'}
+    )
+    
+    if created:
+        messages.success(request, f"Te has postulado con éxito para vender '{producto.nombre}'. Esperando aprobación.")
+    else:
+        if postulacion.estado == 'Rechazado':
+            postulacion.estado = 'Pendiente'
+            postulacion.save()
+            messages.success(request, f"Has reenviado tu postulación para '{producto.nombre}'.")
+        else:
+            messages.info(request, f"Ya tienes una postulación en estado '{postulacion.estado}' para este producto.")
+            
+    return redirect('dashboard_vendedor')
+
+
+def aprobar_postulacion(request, id):
+    role = request.session.get('role')
+    role_id = request.session.get('role_id')
+    if role != 'proveedor' or not role_id:
+        messages.error(request, "Acceso no autorizado.")
+        return redirect('index')
+        
+    postulacion = get_object_or_404(Postulacion, pk=id)
+    if postulacion.producto.proveedor_id != role_id:
+        messages.error(request, "Este producto no te pertenece.")
+        return redirect('dashboard_proveedor')
+        
+    postulacion.estado = 'Aprobado'
+    postulacion.save()
+    
+    producto = postulacion.producto
+    producto.vendedor = postulacion.vendedor
+    producto.save()
+    
+    # Rechazar otras pendientes
+    Postulacion.objects.filter(producto=producto, estado='Pendiente').exclude(id=postulacion.id).update(estado='Rechazado')
+    
+    messages.success(request, f"Postulación aprobada. {postulacion.vendedor.nombre} ahora es el vendedor de '{producto.nombre}'.")
+    return redirect('dashboard_proveedor')
+
+
+def rechazar_postulacion(request, id):
+    role = request.session.get('role')
+    role_id = request.session.get('role_id')
+    if role != 'proveedor' or not role_id:
+        messages.error(request, "Acceso no autorizado.")
+        return redirect('index')
+        
+    postulacion = get_object_or_404(Postulacion, pk=id)
+    if postulacion.producto.proveedor_id != role_id:
+        messages.error(request, "Este producto no te pertenece.")
+        return redirect('dashboard_proveedor')
+        
+    postulacion.estado = 'Rechazado'
+    postulacion.save()
+    
+    messages.info(request, f"Postulación de {postulacion.vendedor.nombre} rechazada.")
+    return redirect('dashboard_proveedor')

@@ -81,7 +81,6 @@
 
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
   <h3 style="margin: 0;">📦 Productos Asignados a ti</h3>
-  <a href="{% url 'crear_producto' %}" class="btn">+ Registrar Producto para Vender</a>
 </div>
 
 {% if productos %}
@@ -94,7 +93,6 @@
           <th>Stock (Cantidad)</th>
           <th>Precio ($)</th>
           <th>Proveedor / Empresa</th>
-          <th style="text-align: right;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -111,10 +109,6 @@
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
               {% endif %}
             </td>
-            <td style="text-align: right;">
-              <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary btn-sm">Editar</a>
-              <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
-            </td>
           </tr>
         {% endfor %}
       </tbody>
@@ -123,5 +117,83 @@
 {% else %}
   <p style="color: var(--text-muted); font-style: italic;">No tienes productos asignados para la venta en este momento.</p>
 {% endif %}
+
+<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+
+<h3 style="margin-bottom: 20px;">🤝 Postulación para Vender Productos del Sistema</h3>
+<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+  A continuación se listan todos los productos subidos por empresas/proveedores. Puedes postularte para ser el vendedor asignado de cualquiera de ellos. La empresa evaluará tu perfil y decidirá si aprueba tu postulación.
+</p>
+
+{% if productos_disponibles %}
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Stock</th>
+          <th>Precio ($)</th>
+          <th>Proveedor / Empresa</th>
+          <th>Vendedor Asignado</th>
+          <th style="text-align: right;">Postulación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for prod in productos_disponibles %}
+          <tr>
+            <td><strong>{{ prod.nombre }}</strong></td>
+            <td>{{ prod.descripcion }}</td>
+            <td>{{ prod.cantidad }}</td>
+            <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
+            <td>
+              {% if prod.proveedor %}
+                <span class="badge" style="background-color: #f1f5f9; color: #475569; border-color: #cbd5e1;">{{ prod.proveedor.nombre }}</span>
+              {% else %}
+                <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if prod.vendedor %}
+                <span class="badge" style="background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd;">{{ prod.vendedor.nombre }}</span>
+              {% else %}
+                <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Sin Vendedor</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              {% if prod.postulacion %}
+                {% if prod.postulacion.estado == 'Pendiente' %}
+                  <span class="badge badge-pendiente">Pendiente</span>
+                {% elif prod.postulacion.estado == 'Aprobado' %}
+                  <span class="badge badge-recibido">Aprobado</span>
+                {% elif prod.postulacion.estado == 'Rechazado' %}
+                  <span class="badge badge-pendiente" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;">Rechazado</span>
+                  <form action="{% url 'postular_producto' prod.id %}" method="post" style="display:inline; margin-left: 5px;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm">Volver a Postular</button>
+                  </form>
+                {% endif %}
+              {% else %}
+                {% if prod.vendedor == vendedor %}
+                  <span class="badge badge-recibido">Ya Asignado</span>
+                {% elif prod.vendedor %}
+                  <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Ocupado</span>
+                {% else %}
+                  <form action="{% url 'postular_producto' prod.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm">Postularse</button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p style="color: var(--text-muted); font-style: italic;">No hay productos disponibles para postulación en el sistema.</p>
+{% endif %}
+
 
 {% endblock %}
