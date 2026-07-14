@@ -1,6 +1,6 @@
 {% extends "master.html" %}
 
-{% block title %}Dashboard Proveedor - ISBEN Solution{% endblock %}
+{% block title %}Dashboard Proveedor - Conexia{% endblock %}
 
 {% block content %}
 <h2>🏢 Panel de Control: Empresa / Proveedor</h2>
@@ -57,7 +57,7 @@
             <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
             <td>
               {% if prod.vendedor %}
-                <span class="badge" style="background-color: #f1f5f9; color: #475569; border-color: #cbd5e1;">{{ prod.vendedor.nombre }}</span>
+                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ prod.vendedor.nombre }}</span>
               {% else %}
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
               {% endif %}

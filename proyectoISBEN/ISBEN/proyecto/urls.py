@@ -26,6 +26,10 @@ urlpatterns = [
     path('pedido/enviar/<int:id>/', views.enviar_pedido, name='enviar_pedido'),
     path('pedido/recibir/<int:id>/', views.recibir_pedido, name='recibir_pedido'),
 
+    # Entrega segura y pagos
+    path('pedido/confirmar-entrega/<int:id>/', views.confirmar_entrega, name='confirmar_entrega'),
+    path('pedido/completar-pago/<int:id>/', views.completar_pago, name='completar_pago'),
+
     # Postulaciones de Vendedores
     path('producto/postular/<int:id>/', views.postular_producto, name='postular_producto'),
     path('postulacion/aprobar/<int:id>/', views.aprobar_postulacion, name='aprobar_postulacion'),

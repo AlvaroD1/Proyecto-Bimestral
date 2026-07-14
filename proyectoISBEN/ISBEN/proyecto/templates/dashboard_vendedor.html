@@ -1,8 +1,53 @@
 {% extends "master.html" %}
 
-{% block title %}Dashboard Vendedor - ISBEN Solution{% endblock %}
+{% block title %}Dashboard Vendedor - Conexia{% endblock %}
 
 {% block content %}
+<style>
+  .code-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .code-input {
+    font-family: 'Courier New', monospace !important;
+    font-size: 16px !important;
+    letter-spacing: 4px !important;
+    text-transform: uppercase;
+    width: 110px !important;
+    text-align: center;
+    padding: 8px 12px !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: 10px !important;
+    background: #fefaf7 !important;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+  .code-input:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(255, 194, 47, 0.15) !important;
+  }
+  .entrega-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .entrega-confirmada {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+  }
+  .entrega-pendiente {
+    background: #fff8e6;
+    color: #b45309;
+    border: 1px solid #ffe7a0;
+  }
+</style>
+
 <h2>🤝 Panel de Control: Vendedor Autorizado</h2>
 <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">
   Bienvenido, <strong>{{ vendedor.nombre }}</strong>. Gestiona las ventas, despacha pedidos y visualiza tus productos asignados.
@@ -41,9 +86,10 @@
           <th>Producto</th>
           <th>Cantidad</th>
           <th>Total</th>
+          <th>Estado Pago</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: right;">Acción</th>
+          <th style="text-align: right;">Acción / Entrega</th>
         </tr>
       </thead>
       <tbody>
@@ -54,12 +100,30 @@
             <td><strong>{{ ped.producto.nombre }}</strong></td>
             <td>{{ ped.cantidad }}</td>
             <td style="font-weight: 600; color: var(--success-dark);">${{ ped.obtener_total }}</td>
+            <td>
+              {% if ped.pago_completado %}
+                <span class="pago-status pago-completo">✅ 100% Pagado</span>
+              {% else %}
+                <span class="pago-status pago-parcial">⚠️ 50% — Debe ${{ ped.monto_pendiente }}</span>
+              {% endif %}
+            </td>
             <td>{{ ped.fecha|date:"d/m/Y H:i" }}</td>
             <td>
               <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
             </td>
             <td style="text-align: right;">
-              {% if ped.estado == 'Pendiente' %}
+              {% if ped.entrega_confirmada %}
+                <span class="entrega-badge entrega-confirmada">🔒 Entrega Verificada</span>
+              {% elif ped.estado == 'Enviado' %}
+                <!-- Campo para ingresar código de entrega -->
+                <form action="{% url 'confirmar_entrega' ped.id %}" method="post" style="display: inline;">
+                  {% csrf_token %}
+                  <div class="code-input-group">
+                    <input type="text" name="codigo" class="code-input" placeholder="ABC123" maxlength="6" required title="Ingresa el código de 6 caracteres que te proporcionó el tendero">
+                    <button type="submit" class="btn btn-accent btn-sm">✔ Verificar</button>
+                  </div>
+                </form>
+              {% elif ped.estado == 'Pendiente' %}
                 <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="display:inline;">
                   {% csrf_token %}
                   <button type="submit" class="btn btn-success btn-sm">Despachar / Enviar</button>
@@ -104,7 +168,7 @@
             <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
             <td>
               {% if prod.proveedor %}
-                <span class="badge" style="background-color: #f1f5f9; color: #475569; border-color: #cbd5e1;">{{ prod.proveedor.nombre }}</span>
+                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ prod.proveedor.nombre }}</span>
               {% else %}
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
               {% endif %}
@@ -148,14 +212,14 @@
             <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
             <td>
               {% if prod.proveedor %}
-                <span class="badge" style="background-color: #f1f5f9; color: #475569; border-color: #cbd5e1;">{{ prod.proveedor.nombre }}</span>
+                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ prod.proveedor.nombre }}</span>
               {% else %}
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
               {% endif %}
             </td>
             <td>
               {% if prod.vendedor %}
-                <span class="badge" style="background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd;">{{ prod.vendedor.nombre }}</span>
+                <span class="badge" style="background-color: #fff3eb; color: #D93610; border-color: #ffd0b8;">{{ prod.vendedor.nombre }}</span>
               {% else %}
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Sin Vendedor</span>
               {% endif %}

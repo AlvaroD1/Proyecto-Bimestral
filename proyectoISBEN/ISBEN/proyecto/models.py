@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 class Proveedor(models.Model):
     nombre = models.CharField(max_length=100)
@@ -83,17 +84,40 @@ class Pedido(models.Model):
         ('Enviado', 'Enviado'),
         ('Recibido', 'Recibido'),
     ]
+    PORCENTAJE_CHOICES = [
+        (100, 'Pago completo (100%)'),
+        (50, 'Pago parcial (50%)'),
+    ]
+    METODO_PAGO_CHOICES = [
+        ('tarjeta_credito', 'Tarjeta de Crédito'),
+        ('tarjeta_debito', 'Tarjeta de Débito'),
+        ('transferencia', 'Transferencia Bancaria'),
+    ]
     comprador = models.ForeignKey(Comprador, on_delete=models.CASCADE, related_name="pedidos")
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="pedidos")
     cantidad = models.IntegerField(default=1)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
     fecha = models.DateTimeField(auto_now_add=True)
+    # Campos de pago
+    porcentaje_pago = models.IntegerField(choices=PORCENTAJE_CHOICES, default=100)
+    metodo_pago = models.CharField(max_length=30, choices=METODO_PAGO_CHOICES, default='tarjeta_credito')
+    monto_pagado = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    monto_pendiente = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    pago_completado = models.BooleanField(default=True)
+    # Campos de entrega segura
+    codigo_entrega = models.CharField(max_length=6, blank=True, null=True)
+    entrega_confirmada = models.BooleanField(default=False)
+    fecha_entrega = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return "Pedido #%d - %s (%s)" % (self.id, self.producto.nombre, self.estado)
 
     def obtener_total(self):
         return self.cantidad * self.producto.precio
+
+    @staticmethod
+    def generar_codigo():
+        return uuid.uuid4().hex[:6].upper()
 
 class Postulacion(models.Model):
     ESTADOS = [

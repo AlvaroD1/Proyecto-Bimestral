@@ -1,8 +1,243 @@
 {% extends "master.html" %}
 
-{% block title %}Dashboard Comprador - ISBEN Solution{% endblock %}
+{% block title %}Dashboard Comprador - Conexia{% endblock %}
 
 {% block content %}
+<style>
+  /* Payment Modal Styles */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26, 14, 8, 0.6);
+    backdrop-filter: blur(6px);
+    z-index: 9999;
+    justify-content: flex-start;
+    align-items: center;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 40px 20px;
+    animation: fadeIn 0.3s ease;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-content {
+    background: #fff;
+    border-radius: 24px;
+    padding: 0;
+    width: 90%;
+    max-width: 520px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: visible;
+    flex-shrink: 0;
+    margin: auto;
+  }
+  .modal-header {
+    background: linear-gradient(135deg, var(--primary-dark), #1a0e08);
+    color: #fff;
+    padding: 24px 30px;
+    position: relative;
+  }
+  .modal-header h3 {
+    color: #fff; margin: 0; font-size: 20px;
+  }
+  .modal-header p {
+    color: #ffcba4; margin: 6px 0 0; font-size: 13px;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 20px;
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    width: 32px; height: 32px; border-radius: 8px;
+    cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.3); }
+  .modal-body { padding: 30px; }
+  
+  /* Order Summary */
+  .order-summary {
+    background: linear-gradient(135deg, #fefaf7, #fff8f0);
+    border: 1px solid var(--border-color);
+    padding: 18px; border-radius: 14px;
+    margin-bottom: 24px;
+  }
+  .order-summary-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0; font-size: 14px; color: var(--text-muted);
+  }
+  .order-summary-row.total {
+    border-top: 2px solid var(--border-color);
+    margin-top: 10px; padding-top: 12px;
+    font-weight: 800; font-size: 18px; color: var(--primary-dark);
+  }
+
+  /* Payment Methods */
+  .payment-methods {
+    display: flex; gap: 10px; margin-bottom: 20px;
+  }
+  .payment-method {
+    flex: 1; padding: 14px 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px; cursor: pointer;
+    text-align: center; transition: all 0.2s;
+    background: #fefaf7; font-size: 12px; font-weight: 600;
+    color: var(--text-muted);
+  }
+  .payment-method:hover { border-color: var(--primary-light); }
+  .payment-method.selected {
+    border-color: var(--primary);
+    background: #fff3eb;
+    color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(251, 67, 24, 0.1);
+  }
+  .payment-method-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+
+  /* Card Form */
+  .card-visual {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 16px; padding: 24px;
+    color: #fff; margin-bottom: 20px;
+    position: relative; overflow: hidden;
+    min-height: 140px;
+  }
+  .card-visual::before {
+    content: ''; position: absolute;
+    top: -30%; right: -15%;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+  }
+  .card-visual::after {
+    content: ''; position: absolute;
+    bottom: -40%; left: -10%;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 50%;
+  }
+  .card-number {
+    font-family: 'Courier New', monospace;
+    font-size: 20px; letter-spacing: 3px;
+    margin-top: 30px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .card-details {
+    display: flex; justify-content: space-between;
+    margin-top: 20px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .card-chip {
+    width: 40px; height: 30px;
+    background: linear-gradient(135deg, #e6c944, #c4a332);
+    border-radius: 6px; position: relative; z-index: 1;
+  }
+
+  .card-form-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-bottom: 20px;
+  }
+  .card-form-grid .full-width { grid-column: 1 / -1; }
+  .form-group label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-muted); margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .form-group input {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px; font-size: 14px;
+    background: #fefaf7; box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus {
+    border-color: var(--primary-light);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(251, 67, 24, 0.1);
+  }
+
+  /* Payment Percentage */
+  .payment-percent-options {
+    display: flex; gap: 12px; margin-bottom: 20px;
+  }
+  .percent-option {
+    flex: 1; padding: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 14px; cursor: pointer;
+    text-align: center; transition: all 0.2s;
+    background: #fefaf7;
+  }
+  .percent-option:hover { border-color: var(--accent); }
+  .percent-option.selected {
+    border-color: var(--accent);
+    background: #fff8e6;
+    box-shadow: 0 0 0 3px rgba(255, 194, 47, 0.15);
+  }
+  .percent-option .percent-value {
+    font-size: 28px; font-weight: 800;
+    color: var(--primary-dark);
+  }
+  .percent-option .percent-label {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .percent-option .percent-amount {
+    font-size: 16px; font-weight: 700;
+    color: var(--success-dark); margin-top: 8px;
+  }
+
+  .payment-summary-final {
+    background: #f0fdf4; border: 1px solid #a7f3d0;
+    padding: 16px; border-radius: 12px;
+    text-align: center; margin-bottom: 20px;
+  }
+  .payment-summary-final .pay-now-label {
+    font-size: 12px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .payment-summary-final .pay-now-amount {
+    font-size: 28px; font-weight: 800;
+    color: var(--success-dark); margin-top: 4px;
+  }
+  .payment-summary-final .pay-pending {
+    font-size: 13px; color: #b45309; margin-top: 6px;
+  }
+
+  /* Processing animation */
+  .processing-overlay {
+    display: none; position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.95);
+    z-index: 10; justify-content: center; align-items: center;
+    flex-direction: column; gap: 16px;
+    border-radius: 24px;
+  }
+  .processing-overlay.active { display: flex; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .success-check {
+    display: none; width: 60px; height: 60px;
+    background: var(--success); border-radius: 50%;
+    color: #fff; font-size: 28px;
+    justify-content: center; align-items: center;
+    animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .success-check.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes scaleIn {
+    from { transform: scale(0); } to { transform: scale(1); }
+  }
+</style>
+
 <h2>🛒 Panel de Control: Comprador / Tendero</h2>
 <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">
   Bienvenido, <strong>{{ comprador.nombre }}</strong>. Explora el catálogo de productos disponibles en tiempo real y gestiona tus pedidos.
@@ -40,9 +275,11 @@
           <th>Producto</th>
           <th>Cantidad</th>
           <th>Total</th>
+          <th>Pago</th>
+          <th>Código Entrega</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: right;">Confirmación</th>
+          <th style="text-align: right;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -52,19 +289,44 @@
             <td><strong>{{ ped.producto.nombre }}</strong></td>
             <td>{{ ped.cantidad }}</td>
             <td style="font-weight: 600; color: var(--success-dark);">${{ ped.obtener_total }}</td>
+            <td>
+              {% if ped.pago_completado %}
+                <span class="pago-status pago-completo">✅ 100%</span>
+              {% else %}
+                <span class="pago-status pago-parcial">⚠️ 50% — Debe ${{ ped.monto_pendiente }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if ped.codigo_entrega %}
+                <span class="codigo-entrega">{{ ped.codigo_entrega }}</span>
+              {% else %}
+                <span style="color: var(--text-muted); font-style: italic;">—</span>
+              {% endif %}
+            </td>
             <td>{{ ped.fecha|date:"d/m/Y H:i" }}</td>
             <td>
               <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
-            </td>
-            <td style="text-align: right;">
-              {% if ped.estado != 'Recibido' %}
-                <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="display:inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-success btn-sm">Confirmar Recepción</button>
-                </form>
-              {% else %}
-                <span style="color: var(--success-dark); font-weight: bold; font-size: 13px;">✔ Entregado y Recibido</span>
+              {% if ped.entrega_confirmada %}
+                <br><span style="font-size: 11px; color: var(--success-dark);">🔒 Entrega verificada</span>
               {% endif %}
+            </td>
+            <td>
+              <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; white-space: nowrap;">
+                {% if ped.estado != 'Recibido' %}
+                  <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">Confirmar Recepción</button>
+                  </form>
+                {% else %}
+                  <span style="color: var(--success-dark); font-weight: bold; font-size: 13px;">✔ Entregado</span>
+                {% endif %}
+                {% if not ped.pago_completado %}
+                  <form action="{% url 'completar_pago' ped.id %}" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-accent btn-sm">Pagar 50% Restante</button>
+                  </form>
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% endfor %}
@@ -106,24 +368,20 @@
             <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
             <td>
               {% if prod.proveedor %}
-                <span class="badge" style="background-color: #f1f5f9; color: #475569; border-color: #cbd5e1;">{{ prod.proveedor.nombre }}</span>
+                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ prod.proveedor.nombre }}</span>
               {% else %}
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
               {% endif %}
             </td>
             <td style="text-align: right;">
               {% if prod.cantidad > 0 %}
-                <form action="{% url 'comprar_producto' prod.id %}" method="post" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-                  {% csrf_token %}
-                  <label for="cantidad_{{ prod.id }}" style="margin: 0; font-size: 13px; color: var(--text-muted);">Cant:</label>
-                  <input type="number" name="cantidad" id="cantidad_{{ prod.id }}" value="1" min="1" max="{{ prod.cantidad }}" style="width: 60px; padding: 4px 6px; border-radius: 6px; margin: 0; text-align: center; border: 1px solid var(--border-color);" required>
-                  <button type="submit" class="btn btn-sm">Realizar Pedido</button>
-                </form>
+                <button type="button" class="btn btn-sm" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
+                  💳 Realizar Pedido
+                </button>
               {% else %}
                 <button class="btn btn-secondary btn-sm" disabled>Sin Stock</button>
               {% endif %}
             </td>
-
           </tr>
         {% endfor %}
       </tbody>
@@ -132,5 +390,282 @@
 {% else %}
   <p style="color: var(--text-muted); font-style: italic;">No hay productos disponibles en el catálogo en este momento.</p>
 {% endif %}
+
+<!-- ========== PASARELA DE PAGOS MODAL ========== -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal-content" style="position: relative;">
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+      <div class="spinner" id="paySpinner"></div>
+      <div class="success-check" id="paySuccess">✔</div>
+      <p id="processingText" style="font-weight: 600; color: var(--text-muted);">Procesando pago...</p>
+    </div>
+    
+    <div class="modal-header">
+      <h3>💳 Pasarela de Pago Seguro</h3>
+      <p>Conexia — Transacción protegida</p>
+      <button class="modal-close" onclick="cerrarPasarela()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Order Summary -->
+      <div class="order-summary">
+        <div class="order-summary-row">
+          <span>Producto:</span>
+          <strong id="sumProducto">—</strong>
+        </div>
+        <div class="order-summary-row">
+          <span>Precio unitario:</span>
+          <span id="sumPrecio">—</span>
+        </div>
+        <div class="order-summary-row">
+          <span>Cantidad:</span>
+          <span id="sumCantidad">—</span>
+        </div>
+        <div class="order-summary-row total">
+          <span>Total:</span>
+          <span id="sumTotal">—</span>
+        </div>
+      </div>
+
+      <!-- Payment Methods -->
+      <label style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Método de Pago</label>
+      <div class="payment-methods">
+        <div class="payment-method selected" data-method="tarjeta_credito" onclick="seleccionarMetodo(this)">
+          <span class="payment-method-icon">💳</span>
+          Tarjeta Crédito
+        </div>
+        <div class="payment-method" data-method="tarjeta_debito" onclick="seleccionarMetodo(this)">
+          <span class="payment-method-icon">🏧</span>
+          Tarjeta Débito
+        </div>
+        <div class="payment-method" data-method="transferencia" onclick="seleccionarMetodo(this)">
+          <span class="payment-method-icon">🏦</span>
+          Transferencia
+        </div>
+      </div>
+
+      <!-- Card Visual -->
+      <div class="card-visual" id="cardVisual">
+        <div class="card-chip"></div>
+        <div class="card-number" id="cardNumberDisplay">•••• •••• •••• ••••</div>
+        <div class="card-details">
+          <div>
+            <div style="opacity: 0.7;">TITULAR</div>
+            <div id="cardNameDisplay" style="font-size: 13px; font-weight: 600;">NOMBRE COMPLETO</div>
+          </div>
+          <div>
+            <div style="opacity: 0.7;">VENCE</div>
+            <div id="cardExpDisplay" style="font-size: 13px; font-weight: 600;">MM/AA</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Form -->
+      <div class="card-form-grid" id="cardForm">
+        <div class="form-group full-width">
+          <label>Número de tarjeta</label>
+          <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" oninput="actualizarTarjeta()">
+        </div>
+        <div class="form-group full-width">
+          <label>Nombre del titular</label>
+          <input type="text" id="cardName" placeholder="NOMBRE COMPLETO" oninput="actualizarTarjeta()">
+        </div>
+        <div class="form-group">
+          <label>Vencimiento</label>
+          <input type="text" id="cardExp" placeholder="MM/AA" maxlength="5" oninput="actualizarTarjeta()">
+        </div>
+        <div class="form-group">
+          <label>CVV</label>
+          <input type="text" id="cardCvv" placeholder="•••" maxlength="4">
+        </div>
+      </div>
+
+      <!-- Cantidad -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Cantidad a pedir</label>
+        <input type="number" id="modalCantidad" value="1" min="1" oninput="actualizarResumen()">
+      </div>
+
+      <!-- Payment Percentage -->
+      <label style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block;">¿Cuánto deseas pagar ahora?</label>
+      <div class="payment-percent-options">
+        <div class="percent-option selected" data-percent="100" onclick="seleccionarPorcentaje(this)">
+          <div class="percent-value">100%</div>
+          <div class="percent-label">Pago Completo</div>
+          <div class="percent-amount" id="amount100">$0.00</div>
+        </div>
+        <div class="percent-option" data-percent="50" onclick="seleccionarPorcentaje(this)">
+          <div class="percent-value">50%</div>
+          <div class="percent-label">Pago Parcial</div>
+          <div class="percent-amount" id="amount50">$0.00</div>
+        </div>
+      </div>
+
+      <!-- Final Summary -->
+      <div class="payment-summary-final">
+        <div class="pay-now-label">Pagar ahora</div>
+        <div class="pay-now-amount" id="payNowAmount">$0.00</div>
+        <div class="pay-pending" id="payPending" style="display: none;">
+          Pendiente por pagar al recibir: <strong id="payPendingAmount">$0.00</strong>
+        </div>
+      </div>
+
+      <!-- Hidden form for actual submission -->
+      <form id="paymentForm" method="post" style="display: none;">
+        {% csrf_token %}
+        <input type="hidden" name="cantidad" id="formCantidad">
+        <input type="hidden" name="porcentaje_pago" id="formPorcentaje" value="100">
+        <input type="hidden" name="metodo_pago" id="formMetodoPago" value="tarjeta_credito">
+      </form>
+
+      <button type="button" class="btn" style="width: 100%; padding: 14px; font-size: 16px;" onclick="procesarPago()">
+        🔒 Confirmar Pago Seguro
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentProductId = null;
+  let currentPrecio = 0;
+  let currentMaxCantidad = 1;
+
+  function abrirPasarela(nombre, precio, maxCantidad, productoId) {
+    currentProductId = productoId;
+    currentPrecio = parseFloat(precio);
+    currentMaxCantidad = maxCantidad;
+    
+    document.getElementById('sumProducto').textContent = nombre;
+    document.getElementById('sumPrecio').textContent = '$' + currentPrecio.toFixed(2);
+    document.getElementById('modalCantidad').value = 1;
+    document.getElementById('modalCantidad').max = maxCantidad;
+    
+    // Reset selections
+    document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
+    document.querySelector('.payment-method[data-method="tarjeta_credito"]').classList.add('selected');
+    document.querySelectorAll('.percent-option').forEach(el => el.classList.remove('selected'));
+    document.querySelector('.percent-option[data-percent="100"]').classList.add('selected');
+    document.getElementById('formMetodoPago').value = 'tarjeta_credito';
+    document.getElementById('formPorcentaje').value = '100';
+    
+    // Reset card form
+    document.getElementById('cardNumber').value = '';
+    document.getElementById('cardName').value = '';
+    document.getElementById('cardExp').value = '';
+    document.getElementById('cardCvv').value = '';
+    document.getElementById('cardNumberDisplay').textContent = '•••• •••• •••• ••••';
+    document.getElementById('cardNameDisplay').textContent = 'NOMBRE COMPLETO';
+    document.getElementById('cardExpDisplay').textContent = 'MM/AA';
+    
+    // Show card form
+    document.getElementById('cardVisual').style.display = 'block';
+    document.getElementById('cardForm').style.display = 'grid';
+    
+    // Reset processing
+    document.getElementById('processingOverlay').classList.remove('active');
+    document.getElementById('paySpinner').style.display = 'block';
+    document.getElementById('paySuccess').classList.remove('active');
+    document.getElementById('processingText').textContent = 'Procesando pago...';
+    
+    actualizarResumen();
+    document.getElementById('paymentModal').classList.add('active');
+    document.body.classList.add('modal-open');
+  }
+
+  function cerrarPasarela() {
+    document.getElementById('paymentModal').classList.remove('active');
+    document.body.classList.remove('modal-open');
+  }
+
+  function seleccionarMetodo(el) {
+    document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+    el.classList.add('selected');
+    const method = el.dataset.method;
+    document.getElementById('formMetodoPago').value = method;
+    
+    if (method === 'transferencia') {
+      document.getElementById('cardVisual').style.display = 'none';
+      document.getElementById('cardForm').style.display = 'none';
+    } else {
+      document.getElementById('cardVisual').style.display = 'block';
+      document.getElementById('cardForm').style.display = 'grid';
+    }
+  }
+
+  function seleccionarPorcentaje(el) {
+    document.querySelectorAll('.percent-option').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('formPorcentaje').value = el.dataset.percent;
+    actualizarResumen();
+  }
+
+  function actualizarResumen() {
+    const cantidad = parseInt(document.getElementById('modalCantidad').value) || 1;
+    const total = currentPrecio * cantidad;
+    const porcentaje = parseInt(document.getElementById('formPorcentaje').value);
+    const payNow = total * (porcentaje / 100);
+    const pending = total - payNow;
+    
+    document.getElementById('sumCantidad').textContent = cantidad;
+    document.getElementById('sumTotal').textContent = '$' + total.toFixed(2);
+    document.getElementById('amount100').textContent = '$' + total.toFixed(2);
+    document.getElementById('amount50').textContent = '$' + (total * 0.5).toFixed(2);
+    document.getElementById('payNowAmount').textContent = '$' + payNow.toFixed(2);
+    
+    if (porcentaje < 100) {
+      document.getElementById('payPending').style.display = 'block';
+      document.getElementById('payPendingAmount').textContent = '$' + pending.toFixed(2);
+    } else {
+      document.getElementById('payPending').style.display = 'none';
+    }
+  }
+
+  function actualizarTarjeta() {
+    const num = document.getElementById('cardNumber').value;
+    const name = document.getElementById('cardName').value;
+    const exp = document.getElementById('cardExp').value;
+    
+    document.getElementById('cardNumberDisplay').textContent = num || '•••• •••• •••• ••••';
+    document.getElementById('cardNameDisplay').textContent = name || 'NOMBRE COMPLETO';
+    document.getElementById('cardExpDisplay').textContent = exp || 'MM/AA';
+  }
+
+  function procesarPago() {
+    const cantidad = parseInt(document.getElementById('modalCantidad').value) || 1;
+    if (cantidad < 1 || cantidad > currentMaxCantidad) {
+      alert('Cantidad inválida. Máximo disponible: ' + currentMaxCantidad);
+      return;
+    }
+    
+    // Show processing animation
+    const overlay = document.getElementById('processingOverlay');
+    overlay.classList.add('active');
+    
+    setTimeout(function() {
+      document.getElementById('paySpinner').style.display = 'none';
+      document.getElementById('paySuccess').classList.add('active');
+      document.getElementById('processingText').textContent = '¡Pago aprobado exitosamente!';
+      document.getElementById('processingText').style.color = 'var(--success-dark)';
+      
+      // Submit the actual form after a small delay
+      setTimeout(function() {
+        const form = document.getElementById('paymentForm');
+        form.action = '/producto/comprar/' + currentProductId + '/';
+        document.getElementById('formCantidad').value = cantidad;
+        form.submit();
+      }, 1200);
+    }, 2000);
+  }
+
+  // Close modal on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') cerrarPasarela();
+  });
+  
+  // Close modal on overlay click
+  document.getElementById('paymentModal').addEventListener('click', function(e) {
+    if (e.target === this) cerrarPasarela();
+  });
+</script>
 
 {% endblock %}
