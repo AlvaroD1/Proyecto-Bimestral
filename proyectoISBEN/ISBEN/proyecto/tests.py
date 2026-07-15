@@ -11,7 +11,7 @@ class ISBENTestCase(TestCase):
         # 1. Registrar Proveedor
         response = self.client.post(reverse('crear_proveedor'), {
             'nombre': 'Distribuidora Alpina',
-            'ruc': '1792345678001',
+            'ruc': '1792345677001',
             'direccion': 'Av. Amazonas 123',
             'usuario': 'alpina_prov',
             'contrasenia': 'Alpina123'
@@ -143,7 +143,7 @@ class ISBENTestCase(TestCase):
         # Intentar registrar Proveedor con contraseña débil (sin números/mayúsculas)
         response = self.client.post(reverse('crear_proveedor'), {
             'nombre': 'Distribuidora Alpina',
-            'ruc': '1792345678001',
+            'ruc': '1792345677001',
             'direccion': 'Av. Amazonas 123',
             'usuario': 'alpina_bad',
             'contrasenia': 'password'
@@ -179,7 +179,7 @@ class ISBENTestCase(TestCase):
         from django.contrib.auth.hashers import make_password
         # 1. Crear Proveedor, Vendedor y Producto
         proveedor = Proveedor.objects.create(
-            nombre="Coca-Cola Test", ruc="1791111111001", direccion="UIO",
+            nombre="Coca-Cola Test", ruc="1791111117001", direccion="UIO",
             usuario="cocacola_test", contrasenia=make_password("CocaCola1")
         )
         vendedor_bueno = Vendedor.objects.create(
@@ -284,5 +284,31 @@ class ISBENTestCase(TestCase):
         producto.refresh_from_db()
         self.assertEqual(producto.cantidad, 6)
         self.assertEqual(Pedido.objects.count(), 1)
+
+    def test_solicitar_vendedor(self):
+        from django.contrib.auth.hashers import make_password
+        # 1. Crear Proveedor y Producto
+        proveedor = Proveedor.objects.create(
+            nombre="Alpina Proveedor", ruc="1792345677001", direccion="Quito",
+            usuario="alpina_p", contrasenia=make_password("Alpina123")
+        )
+        producto = Producto.objects.create(
+            nombre="Leche Descremada", descripcion="Leche", cantidad=50, precio=1.10, proveedor=proveedor
+        )
+        
+        # 2. Iniciar sesión como Proveedor
+        response = self.client.post(reverse('login_role'), {
+            'usuario': 'alpina_p',
+            'contrasenia': 'Alpina123'
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # 3. Enviar solicitud de vendedor para el producto
+        response = self.client.post(reverse('solicitar_vendedor', args=[producto.id]))
+        self.assertEqual(response.status_code, 302)
+        
+        # 4. Verificar que se activó la solicitud de vendedor
+        producto.refresh_from_db()
+        self.assertTrue(producto.solicitud_vendedor_activa)
 
 

@@ -7,16 +7,6 @@ from .models import Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacio
 from .forms import ProveedorForm, VendedorForm, CompradorForm, ProductoForm
 
 def index(request):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role and role_id:
-        if role == 'proveedor':
-            return redirect('dashboard_proveedor')
-        elif role == 'vendedor':
-            return redirect('dashboard_vendedor')
-        elif role == 'comprador':
-            return redirect('dashboard_comprador')
-
     return render(request, 'index.html')
 
 def login_role(request):
@@ -52,6 +42,13 @@ def login_role(request):
                 role = 'comprador'
                 
         if user_obj:
+            if 'roles' not in request.session:
+                request.session['roles'] = {}
+            roles = dict(request.session['roles'])
+            roles[role] = user_obj.id
+            roles[f'{role}_name'] = user_obj.nombre
+            request.session['roles'] = roles
+
             request.session['role'] = role
             request.session['role_id'] = user_obj.id
             request.session['role_name'] = user_obj.nombre
@@ -68,18 +65,18 @@ def login_role(request):
     return redirect('index')
 
 def logout_role(request):
+    request.session.pop('roles', None)
     role = request.session.pop('role', None)
     request.session.pop('role_id', None)
     request.session.pop('role_name', None)
-    if role:
-        messages.info(request, "Sesión cerrada correctamente.")
+    messages.info(request, "Sesión cerrada correctamente.")
     return redirect('index')
 
 
 def dashboard_proveedor(request):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'proveedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
         return redirect('index')
     
     proveedor = get_object_or_404(Proveedor, pk=role_id)
@@ -93,13 +90,15 @@ def dashboard_proveedor(request):
         'productos': productos,
         'pedidos': pedidos,
         'postulaciones': postulaciones,
+        'current_role': 'proveedor',
+        'current_role_name': proveedor.nombre,
     }
     return render(request, 'dashboard_proveedor.html', contexto)
 
 def dashboard_vendedor(request):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'vendedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('vendedor')
+    if not role_id:
         return redirect('index')
     
     vendedor = get_object_or_404(Vendedor, pk=role_id)
@@ -107,24 +106,46 @@ def dashboard_vendedor(request):
     productos = vendedor.obtener_productos()
     pedidos = vendedor.obtener_pedidos()
     
-    # Obtener todos los productos de empresas/proveedores disponibles para postular
-    productos_disponibles = Producto.objects.filter(proveedor__isnull=False)
+    # Obtener todas las empresas/proveedores que tienen productos
+    proveedores = Proveedor.objects.filter(productos__isnull=False).distinct().prefetch_related('productos')
+    
+    # Obtener postulaciones del vendedor
     postulaciones_dict = {p.producto_id: p for p in Postulacion.objects.filter(vendedor=vendedor)}
-    for prod in productos_disponibles:
+    
+    # Adjuntar la postulación a cada producto de cada proveedor
+    for prov in proveedores:
+        for prod in prov.productos.all():
+            prod.postulacion = postulaciones_dict.get(prod.id)
+            
+    # Productos sin proveedor (si los hay)
+    productos_sin_proveedor = Producto.objects.filter(proveedor__isnull=True)
+    for prod in productos_sin_proveedor:
         prod.postulacion = postulaciones_dict.get(prod.id)
+
+    # Obtener peticiones urgentes de empresas (productos esperando vendedor)
+    peticiones_urgentes = Producto.objects.filter(
+        solicitud_vendedor_activa=True,
+        vendedor__isnull=True
+    ).exclude(
+        postulaciones__vendedor=vendedor
+    ).distinct()
         
     contexto = {
         'vendedor': vendedor,
         'productos': productos,
         'pedidos': pedidos,
-        'productos_disponibles': productos_disponibles,
+        'proveedores': proveedores,
+        'productos_sin_proveedor': productos_sin_proveedor,
+        'peticiones_urgentes': peticiones_urgentes,
+        'current_role': 'vendedor',
+        'current_role_name': vendedor.nombre,
     }
     return render(request, 'dashboard_vendedor.html', contexto)
 
 def dashboard_comprador(request):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'comprador' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
         return redirect('index')
     
     comprador = get_object_or_404(Comprador, pk=role_id)
@@ -142,6 +163,8 @@ def dashboard_comprador(request):
         'productos_sin_proveedor': productos_sin_proveedor,
         'pedidos': pedidos,
         'total_gastado': comprador.obtener_total_gastado(),
+        'current_role': 'comprador',
+        'current_role_name': comprador.nombre,
     }
     return render(request, 'dashboard_comprador.html', contexto)
 
@@ -178,9 +201,9 @@ def crear_comprador(request):
 
 # CRUD Productos
 def crear_producto(request):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'proveedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
         messages.error(request, "Acceso denegado. Solo las empresas/proveedores pueden registrar productos.")
         return redirect('index')
         
@@ -198,9 +221,9 @@ def crear_producto(request):
     return render(request, 'crear_producto.html', {'formulario': formulario})
 
 def editar_producto(request, id):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'proveedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
         messages.error(request, "Acceso denegado. Solo las empresas/proveedores pueden editar productos.")
         return redirect('index')
         
@@ -220,9 +243,9 @@ def editar_producto(request, id):
     return render(request, 'editar_producto.html', {'formulario': formulario})
 
 def eliminar_producto(request, id):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'proveedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
         messages.error(request, "Acceso denegado. Solo las empresas/proveedores pueden eliminar productos.")
         return redirect('index')
         
@@ -237,9 +260,9 @@ def eliminar_producto(request, id):
 
 # Pedidos / Flujos de Transacción — con pasarela de pagos y código de entrega
 def comprar_producto(request, id):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'comprador' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
         return redirect('index')
         
     comprador = get_object_or_404(Comprador, pk=role_id)
@@ -314,8 +337,8 @@ def comprar_producto(request, id):
     return redirect('dashboard_comprador')
 
 def enviar_pedido(request, id):
-    role = request.session.get('role')
-    if role not in ['proveedor', 'vendedor']:
+    roles = request.session.get('roles', {})
+    if 'proveedor' not in roles and 'vendedor' not in roles:
         return redirect('index')
         
     pedido = get_object_or_404(Pedido, pk=id)
@@ -329,9 +352,9 @@ def enviar_pedido(request, id):
     return redirect('index')
 
 def recibir_pedido(request, id):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'comprador' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
         return redirect('index')
         
     pedido = get_object_or_404(Pedido, pk=id)
@@ -355,8 +378,8 @@ def recibir_pedido(request, id):
 def confirmar_entrega(request, id):
     """El vendedor ingresa el código de entrega para confirmar que el pedido
     fue entregado al tendero correcto."""
-    role = request.session.get('role')
-    if role not in ['vendedor', 'proveedor']:
+    roles = request.session.get('roles', {})
+    if 'vendedor' not in roles and 'proveedor' not in roles:
         messages.error(request, "Solo los vendedores o proveedores pueden confirmar entregas.")
         return redirect('index')
     
@@ -377,20 +400,39 @@ def confirmar_entrega(request, id):
             # ¡Código correcto! Confirmar entrega
             pedido.entrega_confirmada = True
             pedido.fecha_entrega = timezone.now()
-            pedido.estado = 'Recibido'
+            if pedido.estado == 'Pendiente':
+                pedido.estado = 'Enviado'
+            
+            pago_completado_ahora = False
+            monto_cobrado = Decimal('0.00')
+            
+            # Registrar el cobro de la parte pendiente si es indicado
+            registrar_pago = request.POST.get('cobrar_pendiente') == '1'
+            if not pedido.pago_completado and registrar_pago:
+                monto_cobrado = pedido.monto_pendiente
+                pedido.monto_pagado += pedido.monto_pendiente
+                pedido.monto_pendiente = Decimal('0.00')
+                pedido.pago_completado = True
+                pago_completado_ahora = True
+                
             pedido.save()
             
-            if pedido.pago_completado:
+            if pago_completado_ahora:
+                messages.success(request, 
+                    f"✅ Entrega y Pago Verificados para pedido #{pedido.id}. "
+                    f"Se cobró y registró el 50% restante (${monto_cobrado}). ¡Pago al 100% completado!"
+                )
+            elif pedido.pago_completado:
                 messages.success(request, 
                     f"✅ Entrega verificada para pedido #{pedido.id}. "
-                    f"Pago COMPLETO al 100% — ${pedido.monto_pagado}. "
-                    f"¡Transacción finalizada!"
+                    f"El pago del pedido ya está COMPLETO al 100% — ${pedido.monto_pagado}. "
+                    f"¡Transacción finalizada con éxito!"
                 )
             else:
                 messages.success(request,
                     f"✅ Entrega verificada para pedido #{pedido.id}. "
                     f"⚠️ Pago PARCIAL (50%) — Pagado: ${pedido.monto_pagado}. "
-                    f"Pendiente por cobrar: ${pedido.monto_pendiente}."
+                    f"Faltante por cobrar: ${pedido.monto_pendiente}."
                 )
         else:
             messages.error(request,
@@ -403,9 +445,9 @@ def confirmar_entrega(request, id):
 
 def completar_pago(request, id):
     """El comprador paga el 50% restante de un pedido con pago parcial."""
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'comprador' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
         return redirect('index')
     
     pedido = get_object_or_404(Pedido, pk=id)
@@ -435,9 +477,9 @@ def completar_pago(request, id):
 
 
 def postular_producto(request, id):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'vendedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('vendedor')
+    if not role_id:
         messages.error(request, "Solo los vendedores pueden postularse.")
         return redirect('index')
         
@@ -468,9 +510,9 @@ def postular_producto(request, id):
 
 
 def aprobar_postulacion(request, id):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'proveedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
         messages.error(request, "Acceso no autorizado.")
         return redirect('index')
         
@@ -484,6 +526,7 @@ def aprobar_postulacion(request, id):
     
     producto = postulacion.producto
     producto.vendedor = postulacion.vendedor
+    producto.solicitud_vendedor_activa = False
     producto.save()
     
     # Rechazar otras pendientes
@@ -494,9 +537,9 @@ def aprobar_postulacion(request, id):
 
 
 def rechazar_postulacion(request, id):
-    role = request.session.get('role')
-    role_id = request.session.get('role_id')
-    if role != 'proveedor' or not role_id:
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
         messages.error(request, "Acceso no autorizado.")
         return redirect('index')
         
@@ -509,4 +552,21 @@ def rechazar_postulacion(request, id):
     postulacion.save()
     
     messages.info(request, f"Postulación de {postulacion.vendedor.nombre} rechazada.")
+    return redirect('dashboard_proveedor')
+
+
+def solicitar_vendedor(request, id):
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
+        return redirect('index')
+        
+    producto = get_object_or_404(Producto, pk=id)
+    if producto.proveedor_id != role_id:
+        messages.error(request, "Este producto no te pertenece.")
+        return redirect('dashboard_proveedor')
+        
+    producto.solicitud_vendedor_activa = True
+    producto.save()
+    messages.success(request, f"Se ha enviado la petición a todos los vendedores para postularse al producto '{producto.nombre}'.")
     return redirect('dashboard_proveedor')

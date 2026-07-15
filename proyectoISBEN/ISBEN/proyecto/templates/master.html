@@ -577,6 +577,82 @@
       .message-item {
         animation: fadeInUp 0.3s ease-out;
       }
+
+      /* Mobile Responsiveness */
+      @media (max-width: 768px) {
+        header {
+          padding: 20px !important;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        
+        .header-brand {
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+        
+        nav {
+          padding: 10px 15px !important;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+        
+        .nav-container {
+          flex-direction: column;
+          gap: 5px;
+          text-align: center;
+        }
+        
+        .main-card {
+          padding: 20px 15px !important;
+          border-radius: 12px;
+        }
+        
+        .metrics-grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+        
+        .metric-card {
+          padding: 15px;
+          border-radius: 12px;
+        }
+
+        th, td {
+          padding: 10px 12px !important;
+          font-size: 13px !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          padding: 10px !important;
+        }
+        
+        header h1 {
+          font-size: 22px !important;
+        }
+        
+        header p {
+          font-size: 12px !important;
+        }
+        
+        .metric-value {
+          font-size: 24px !important;
+        }
+        
+        table {
+          font-size: 13px !important;
+        }
+        
+        .btn {
+          padding: 8px 16px !important;
+          font-size: 13px !important;
+        }
+      }
     </style>
   </head>
   <body>
@@ -591,7 +667,12 @@
             <p>Plataforma Inteligente de Gestión de Insumos</p>
           </div>
         </div>
-        {% if request.session.role %}
+        {% if current_role %}
+          <div class="active-session">
+            <span class="role-indicator">{{ current_role }}</span>
+            <strong style="color:#ffffff;">{{ current_role_name }}</strong>
+          </div>
+        {% elif request.session.role %}
           <div class="active-session">
             <span class="role-indicator">{{ request.session.role }}</span>
             <strong style="color:#ffffff;">{{ request.session.role_name }}</strong>
@@ -602,8 +683,17 @@
       <nav>
         <div class="nav-container">
           <a href="{% url 'index' %}" class="nav-link">🏠 Inicio / Panel</a>
+          {% if request.session.roles.comprador %}
+            <a href="{% url 'dashboard_comprador' %}" class="nav-link">🛒 Panel Comprador</a>
+          {% endif %}
+          {% if request.session.roles.vendedor %}
+            <a href="{% url 'dashboard_vendedor' %}" class="nav-link">🤝 Panel Vendedor</a>
+          {% endif %}
+          {% if request.session.roles.proveedor %}
+            <a href="{% url 'dashboard_proveedor' %}" class="nav-link">🏢 Panel Proveedor</a>
+          {% endif %}
         </div>
-        {% if request.session.role %}
+        {% if request.session.roles or request.session.role %}
           <div>
             <a href="{% url 'logout_role' %}" class="btn btn-danger btn-sm">Cerrar Sesión</a>
           </div>

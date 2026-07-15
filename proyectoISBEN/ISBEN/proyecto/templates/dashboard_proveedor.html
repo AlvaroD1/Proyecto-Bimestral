@@ -90,9 +90,10 @@
           <th>Producto</th>
           <th>Cantidad</th>
           <th>Total</th>
+          <th>Estado de Pago</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: center; min-width: 140px;">Acción</th>
+          <th style="text-align: center; min-width: 160px;">Acción de Entrega</th>
         </tr>
       </thead>
       <tbody>
@@ -103,19 +104,46 @@
             <td><strong>{{ ped.producto.nombre }}</strong></td>
             <td>{{ ped.cantidad }}</td>
             <td style="font-weight: 600; color: var(--success-dark);">${{ ped.obtener_total }}</td>
+            <td>
+              {% if ped.pago_completado %}
+                <span class="pago-status pago-completo" style="background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">✅ 100% Pagado</span>
+              {% else %}
+                <span class="pago-status pago-parcial" style="background-color: #fffbeb; color: #92400e; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">⚠️ 50% — Debe ${{ ped.monto_pendiente }}</span>
+              {% endif %}
+            </td>
             <td>{{ ped.fecha|date:"d/m/Y H:i" }}</td>
             <td>
               <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
+              {% if ped.entrega_confirmada %}
+                <br><span style="font-size: 11px; color: var(--success-dark); font-weight: bold;">🔒 Entrega Verificada</span>
+              {% endif %}
             </td>
             <td>
               <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
-                {% if ped.estado == 'Pendiente' %}
-                  <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="margin: 0; width: 100%;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Despachar / Enviar</button>
-                  </form>
+                {% if not ped.producto.vendedor %}
+                  <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: bold; text-align: center; justify-content: center;">⚠️ Sin Vendedor</span>
+                  {% if not ped.producto.solicitud_vendedor_activa %}
+                    <form action="{% url 'solicitar_vendedor' ped.producto.id %}" method="post" style="margin: 0; width: 100%;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Solicitar Vendedor</button>
+                    </form>
+                  {% else %}
+                    <span style="font-size: 11px; color: var(--primary-dark); font-weight: bold; margin-top: 5px; display: block; text-align: center;">📢 Petición enviada</span>
+                  {% endif %}
                 {% else %}
-                  <span style="font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; display: block;">Sin acciones</span>
+                  {% if ped.entrega_confirmada %}
+                    <span class="badge" style="background-color: #ecfdf5; color: #065f46; border-color: #a7f3d0; text-align: center; font-weight: bold; padding: 6px 12px; display: block; width: 100%; box-sizing: border-box; justify-content: center;">🔒 Entrega Verificada</span>
+                  {% else %}
+                    <span style="font-size: 12px; color: var(--text-muted); text-align: center; display: block; margin-bottom: 4px;">Asignado a: <strong>{{ ped.producto.vendedor.nombre }}</strong></span>
+                    {% if ped.estado == 'Pendiente' %}
+                      <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="margin: 0; width: 100%;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Despachar / Enviar</button>
+                      </form>
+                    {% else %}
+                      <span style="font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; display: block;">Esperando entrega segura</span>
+                    {% endif %}
+                  {% endif %}
                 {% endif %}
               </div>
             </td>
