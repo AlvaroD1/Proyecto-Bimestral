@@ -214,7 +214,7 @@ def crear_producto(request):
             producto.proveedor = Proveedor.objects.get(pk=role_id)
             producto.save()
             messages.success(request, f"Producto '{producto.nombre}' registrado con éxito.")
-            return redirect('index')
+            return redirect('dashboard_proveedor')
     else:
         formulario = ProductoForm(initial={'proveedor': role_id})
         
@@ -237,7 +237,7 @@ def editar_producto(request, id):
         if formulario.is_valid():
             formulario.save()
             messages.success(request, f"Producto '{producto.nombre}' actualizado.")
-            return redirect('index')
+            return redirect('dashboard_proveedor')
     else:
         formulario = ProductoForm(instance=producto)
     return render(request, 'editar_producto.html', {'formulario': formulario})
@@ -256,7 +256,7 @@ def eliminar_producto(request, id):
 
     producto.delete()
     messages.success(request, f"Producto {producto.nombre} eliminado.")
-    return redirect('index')
+    return redirect('dashboard_proveedor')
 
 # Pedidos / Flujos de Transacción — con pasarela de pagos y código de entrega
 def comprar_producto(request, id):
@@ -349,7 +349,12 @@ def enviar_pedido(request, id):
     else:
         messages.error(request, f"El pedido #{pedido.id} no se puede enviar porque está en estado {pedido.estado}.")
         
-    return redirect('index')
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    if 'proveedor' in roles:
+        return redirect('dashboard_proveedor')
+    return redirect('dashboard_vendedor')
 
 def recibir_pedido(request, id):
     roles = request.session.get('roles', {})
@@ -362,6 +367,10 @@ def recibir_pedido(request, id):
     if pedido.comprador.id != role_id:
         messages.error(request, "Acceso no autorizado a este pedido.")
         return redirect('index')
+        
+    if not pedido.entrega_confirmada:
+        messages.error(request, "No puedes recibir el pedido sin antes confirmar la entrega mediante el código de seguridad.")
+        return redirect('dashboard_comprador')
         
     if pedido.estado in ['Pendiente', 'Enviado']:
         pedido.estado = 'Recibido'
@@ -385,16 +394,24 @@ def confirmar_entrega(request, id):
     
     pedido = get_object_or_404(Pedido, pk=id)
     
+    def get_redirect():
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
+        if 'vendedor' in roles:
+            return redirect('dashboard_vendedor')
+        return redirect('dashboard_proveedor')
+
     if pedido.entrega_confirmada:
         messages.info(request, f"La entrega del pedido #{pedido.id} ya fue confirmada anteriormente.")
-        return redirect('index')
+        return get_redirect()
     
     if request.method == 'POST':
         codigo_ingresado = request.POST.get('codigo', '').strip().upper()
         
         if not codigo_ingresado:
             messages.error(request, "Debes ingresar el código de entrega.")
-            return redirect('index')
+            return get_redirect()
         
         if codigo_ingresado == pedido.codigo_entrega:
             # ¡Código correcto! Confirmar entrega
@@ -440,7 +457,7 @@ def confirmar_entrega(request, id):
                 f"Verifica el código con el tendero/comprador e intenta nuevamente."
             )
     
-    return redirect('index')
+    return get_redirect()
 
 
 def completar_pago(request, id):
@@ -456,6 +473,10 @@ def completar_pago(request, id):
     if pedido.comprador.id != role_id:
         messages.error(request, "Acceso no autorizado a este pedido.")
         return redirect('index')
+    
+    if not pedido.entrega_confirmada:
+        messages.error(request, "No puedes completar el pago restante porque la entrega aún no ha sido confirmada con el código de seguridad.")
+        return redirect('dashboard_comprador')
     
     if pedido.pago_completado:
         messages.info(request, f"El pedido #{pedido.id} ya está pagado al 100%.")

@@ -348,18 +348,30 @@
             <td>
               <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
                 {% if ped.estado != 'Recibido' %}
-                  <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="margin:0; width: 100%;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Confirmar Recepción</button>
-                  </form>
+                  {% if ped.entrega_confirmada %}
+                    <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="margin:0; width: 100%;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Confirmar Recepción</button>
+                    </form>
+                  {% else %}
+                    <button class="btn btn-secondary btn-sm" style="width: 100%; cursor: not-allowed; opacity: 0.65;" disabled title="Debes esperar a que el vendedor verifique tu código de entrega">
+                      ⏳ Espera Verificación de Código
+                    </button>
+                  {% endif %}
                 {% else %}
                   <span style="color: var(--success-dark); font-weight: bold; font-size: 13px; text-align: center; display: block;">✔ Entregado</span>
                 {% endif %}
                 {% if not ped.pago_completado %}
-                  <form action="{% url 'completar_pago' ped.id %}" method="post" style="margin:0; width: 100%;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-accent btn-sm" style="width: 100%;">Pagar 50% Restante</button>
-                  </form>
+                  {% if ped.entrega_confirmada %}
+                    <form action="{% url 'completar_pago' ped.id %}" method="post" style="margin:0; width: 100%;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-accent btn-sm" style="width: 100%;">Pagar 50% Restante</button>
+                    </form>
+                  {% else %}
+                    <button class="btn btn-secondary btn-sm" style="width: 100%; cursor: not-allowed; opacity: 0.65;" disabled title="Debes esperar a que el vendedor verifique tu código antes de completar el pago">
+                      ⏳ Espera Código para Pagar
+                    </button>
+                  {% endif %}
                 {% endif %}
               </div>
             </td>
