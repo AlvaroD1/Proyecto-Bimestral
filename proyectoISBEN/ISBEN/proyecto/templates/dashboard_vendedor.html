@@ -6,8 +6,9 @@
 <style>
   .code-input-group {
     display: flex;
-    gap: 8px;
-    align-items: center;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
   }
   .code-input {
     font-family: 'Courier New', monospace !important;
@@ -89,7 +90,7 @@
           <th>Estado Pago</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: right;">Acción / Entrega</th>
+          <th style="text-align: center; min-width: 140px;">Acción / Entrega</th>
         </tr>
       </thead>
       <tbody>
@@ -111,26 +112,28 @@
             <td>
               <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
             </td>
-            <td style="text-align: right;">
-              {% if ped.entrega_confirmada %}
-                <span class="entrega-badge entrega-confirmada">🔒 Entrega Verificada</span>
-              {% elif ped.estado == 'Enviado' %}
-                <!-- Campo para ingresar código de entrega -->
-                <form action="{% url 'confirmar_entrega' ped.id %}" method="post" style="display: inline;">
-                  {% csrf_token %}
-                  <div class="code-input-group">
-                    <input type="text" name="codigo" class="code-input" placeholder="ABC123" maxlength="6" required title="Ingresa el código de 6 caracteres que te proporcionó el tendero">
-                    <button type="submit" class="btn btn-accent btn-sm">✔ Verificar</button>
-                  </div>
-                </form>
-              {% elif ped.estado == 'Pendiente' %}
-                <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="display:inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-success btn-sm">Despachar / Enviar</button>
-                </form>
-              {% else %}
-                <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Sin acciones</span>
-              {% endif %}
+            <td>
+              <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                {% if ped.entrega_confirmada %}
+                  <span class="entrega-badge entrega-confirmada" style="justify-content: center;">🔒 Entrega Verificada</span>
+                {% elif ped.estado == 'Enviado' %}
+                  <!-- Campo para ingresar código de entrega -->
+                  <form action="{% url 'confirmar_entrega' ped.id %}" method="post" style="margin: 0; width: 100%;">
+                    {% csrf_token %}
+                    <div class="code-input-group">
+                      <input type="text" name="codigo" class="code-input" placeholder="ABC123" maxlength="6" required title="Ingresa el código de 6 caracteres que te proporcionó el tendero" style="width: 100% !important; box-sizing: border-box;">
+                      <button type="submit" class="btn btn-accent btn-sm" style="width: 100%;">✔ Verificar</button>
+                    </div>
+                  </form>
+                {% elif ped.estado == 'Pendiente' %}
+                  <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="margin: 0; width: 100%;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Despachar / Enviar</button>
+                  </form>
+                {% else %}
+                  <span style="font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; display: block;">Sin acciones</span>
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% endfor %}
@@ -224,31 +227,33 @@
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Sin Vendedor</span>
               {% endif %}
             </td>
-            <td style="text-align: right;">
-              {% if prod.postulacion %}
-                {% if prod.postulacion.estado == 'Pendiente' %}
-                  <span class="badge badge-pendiente">Pendiente</span>
-                {% elif prod.postulacion.estado == 'Aprobado' %}
-                  <span class="badge badge-recibido">Aprobado</span>
-                {% elif prod.postulacion.estado == 'Rechazado' %}
-                  <span class="badge badge-pendiente" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;">Rechazado</span>
-                  <form action="{% url 'postular_producto' prod.id %}" method="post" style="display:inline; margin-left: 5px;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-secondary btn-sm">Volver a Postular</button>
-                  </form>
-                {% endif %}
-              {% else %}
-                {% if prod.vendedor == vendedor %}
-                  <span class="badge badge-recibido">Ya Asignado</span>
-                {% elif prod.vendedor %}
-                  <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Ocupado</span>
+            <td style="text-align: center; min-width: 120px;">
+              <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                {% if prod.postulacion %}
+                  {% if prod.postulacion.estado == 'Pendiente' %}
+                    <span class="badge badge-pendiente" style="justify-content: center;">Pendiente</span>
+                  {% elif prod.postulacion.estado == 'Aprobado' %}
+                    <span class="badge badge-recibido" style="justify-content: center;">Aprobado</span>
+                  {% elif prod.postulacion.estado == 'Rechazado' %}
+                    <span class="badge badge-pendiente" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; justify-content: center;">Rechazado</span>
+                    <form action="{% url 'postular_producto' prod.id %}" method="post" style="margin: 0; width: 100%;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%;">Volver a Postular</button>
+                    </form>
+                  {% endif %}
                 {% else %}
-                  <form action="{% url 'postular_producto' prod.id %}" method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm">Postularse</button>
-                  </form>
+                  {% if prod.vendedor == vendedor %}
+                    <span class="badge badge-recibido" style="justify-content: center;">Ya Asignado</span>
+                  {% elif prod.vendedor %}
+                    <span style="font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; display: block;">Ocupado</span>
+                  {% else %}
+                    <form action="{% url 'postular_producto' prod.id %}" method="post" style="margin: 0; width: 100%;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm" style="width: 100%;">Postularse</button>
+                    </form>
+                  {% endif %}
                 {% endif %}
-              {% endif %}
+              </div>
             </td>
           </tr>
         {% endfor %}

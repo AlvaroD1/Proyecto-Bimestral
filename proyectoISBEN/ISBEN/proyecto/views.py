@@ -130,11 +130,16 @@ def dashboard_comprador(request):
     comprador = get_object_or_404(Comprador, pk=role_id)
     # Hacerle preguntas al modelo directamente para obtener info
     pedidos = comprador.obtener_pedidos()
-    productos = Producto.objects.all()
+    
+    # Obtener todas las empresas/proveedores que tienen productos
+    proveedores = Proveedor.objects.filter(productos__isnull=False).distinct().prefetch_related('productos')
+    # También productos que no tengan proveedor
+    productos_sin_proveedor = Producto.objects.filter(proveedor__isnull=True)
     
     contexto = {
         'comprador': comprador,
-        'productos': productos,
+        'proveedores': proveedores,
+        'productos_sin_proveedor': productos_sin_proveedor,
         'pedidos': pedidos,
         'total_gastado': comprador.obtener_total_gastado(),
     }

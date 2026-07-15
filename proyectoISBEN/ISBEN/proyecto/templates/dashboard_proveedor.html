@@ -45,7 +45,7 @@
           <th>Stock</th>
           <th>Precio ($)</th>
           <th>Vendedor Asociado</th>
-          <th style="text-align: right;">Acciones</th>
+          <th style="text-align: center; min-width: 100px;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -62,9 +62,11 @@
                 <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
               {% endif %}
             </td>
-            <td style="text-align: right;">
-              <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary btn-sm">Editar</a>
-              <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
+            <td>
+              <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary btn-sm" style="width: 100%; text-align: center; display: block;">Editar</a>
+                <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger btn-sm" style="width: 100%; text-align: center; display: block;" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
+              </div>
             </td>
           </tr>
         {% endfor %}
@@ -90,7 +92,7 @@
           <th>Total</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: right;">Acción</th>
+          <th style="text-align: center; min-width: 140px;">Acción</th>
         </tr>
       </thead>
       <tbody>
@@ -105,15 +107,17 @@
             <td>
               <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
             </td>
-            <td style="text-align: right;">
-              {% if ped.estado == 'Pendiente' %}
-                <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="display:inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-success btn-sm">Despachar / Enviar</button>
-                </form>
-              {% else %}
-                <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Sin acciones</span>
-              {% endif %}
+            <td>
+              <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                {% if ped.estado == 'Pendiente' %}
+                  <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="margin: 0; width: 100%;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Despachar / Enviar</button>
+                  </form>
+                {% else %}
+                  <span style="font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; display: block;">Sin acciones</span>
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% endfor %}
@@ -142,7 +146,7 @@
           <th>Calificación</th>
           <th>Descripción del Perfil</th>
           <th>Estado</th>
-          <th style="text-align: right;">Acciones</th>
+          <th style="text-align: center; min-width: 120px;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -164,19 +168,21 @@
             <td>
               <span class="badge badge-{{ post.estado|lower }}">{{ post.estado }}</span>
             </td>
-            <td style="text-align: right; white-space: nowrap;">
-              {% if post.estado == 'Pendiente' %}
-                <form action="{% url 'aprobar_postulacion' post.id %}" method="post" style="display:inline; margin-right: 5px;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
-                </form>
-                <form action="{% url 'rechazar_postulacion' post.id %}" method="post" style="display:inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
-                </form>
-              {% else %}
-                <span style="font-size: 13px; color: var(--text-muted); font-style: italic;">Evaluado</span>
-              {% endif %}
+            <td>
+              <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                {% if post.estado == 'Pendiente' %}
+                  <form action="{% url 'aprobar_postulacion' post.id %}" method="post" style="margin: 0; width: 100%;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Aprobar</button>
+                  </form>
+                  <form action="{% url 'rechazar_postulacion' post.id %}" method="post" style="margin: 0; width: 100%;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">Rechazar</button>
+                  </form>
+                {% else %}
+                  <span style="font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; display: block;">Evaluado</span>
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% endfor %}

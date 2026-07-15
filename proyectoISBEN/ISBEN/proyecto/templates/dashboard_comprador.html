@@ -236,6 +236,18 @@
   @keyframes scaleIn {
     from { transform: scale(0); } to { transform: scale(1); }
   }
+
+  .company-card.active {
+    border-color: var(--primary) !important;
+    background: #fff3eb !important;
+    box-shadow: 0 8px 16px -2px rgba(251, 67, 24, 0.15) !important;
+    transform: translateY(-2px);
+  }
+  .company-card:hover {
+    border-color: var(--primary-light) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.05);
+  }
 </style>
 
 <h2>🛒 Panel de Control: Comprador / Tendero</h2>
@@ -279,7 +291,7 @@
           <th>Código Entrega</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: right;">Acciones</th>
+          <th style="text-align: center; min-width: 150px;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -311,19 +323,19 @@
               {% endif %}
             </td>
             <td>
-              <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; white-space: nowrap;">
+              <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
                 {% if ped.estado != 'Recibido' %}
-                  <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="margin:0;">
+                  <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="margin:0; width: 100%;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-sm">Confirmar Recepción</button>
+                    <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Confirmar Recepción</button>
                   </form>
                 {% else %}
-                  <span style="color: var(--success-dark); font-weight: bold; font-size: 13px;">✔ Entregado</span>
+                  <span style="color: var(--success-dark); font-weight: bold; font-size: 13px; text-align: center; display: block;">✔ Entregado</span>
                 {% endif %}
                 {% if not ped.pago_completado %}
-                  <form action="{% url 'completar_pago' ped.id %}" method="post" style="margin:0;">
+                  <form action="{% url 'completar_pago' ped.id %}" method="post" style="margin:0; width: 100%;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-accent btn-sm">Pagar 50% Restante</button>
+                    <button type="submit" class="btn btn-accent btn-sm" style="width: 100%;">Pagar 50% Restante</button>
                   </form>
                 {% endif %}
               </div>
@@ -339,57 +351,162 @@
 
 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
 
-<h3 style="margin-bottom: 20px;">✨ Catálogo de Productos (Stock en Tiempo Real)</h3>
-{% if productos %}
-  <div class="table-responsive">
-    <table>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Descripción</th>
-          <th>Stock Real</th>
-          <th>Precio ($)</th>
-          <th>Proveedor / Distribuidor</th>
-          <th style="text-align: right;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for prod in productos %}
-          <tr>
-            <td><strong>{{ prod.nombre }}</strong></td>
-            <td>{{ prod.descripcion }}</td>
-            <td>
-              {% if prod.cantidad > 0 %}
-                <span class="badge" style="background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; font-weight: bold;">{{ prod.cantidad }} unidades</span>
-              {% else %}
-                <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: bold;">Agotado</span>
-              {% endif %}
-            </td>
-            <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
-            <td>
-              {% if prod.proveedor %}
-                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ prod.proveedor.nombre }}</span>
-              {% else %}
-                <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
-              {% endif %}
-            </td>
-            <td style="text-align: right;">
-              {% if prod.cantidad > 0 %}
-                <button type="button" class="btn btn-sm" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
-                  💳 Realizar Pedido
-                </button>
-              {% else %}
-                <button class="btn btn-secondary btn-sm" disabled>Sin Stock</button>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% else %}
-  <p style="color: var(--text-muted); font-style: italic;">No hay productos disponibles en el catálogo en este momento.</p>
-{% endif %}
+<h3 style="margin-bottom: 10px;">🏢 Directorio de Empresas Proveedoras</h3>
+<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+  Selecciona una empresa para visualizar y comprar sus productos directamente:
+</p>
+
+<!-- Company Selector Cards -->
+<div class="company-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px;">
+  {% for prov in proveedores %}
+    <div class="company-card" id="card-prov-{{ prov.id }}" onclick="verProductosProveedor('{{ prov.id }}')" style="background: #ffffff; border: 2px solid var(--border-color); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 32px; background: #fff3eb; padding: 10px; border-radius: 12px;">🏢</span>
+        <div>
+          <h4 style="margin: 0; color: var(--primary-dark); font-size: 16px; font-weight: 700;">{{ prov.nombre }}</h4>
+          <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">RUC: {{ prov.ruc }}</span>
+        </div>
+      </div>
+      <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+        <span>📍</span> {{ prov.direccion }}
+      </div>
+      <div style="margin-top: auto; padding-top: 10px; border-top: 1px solid #fdf6f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+        <span style="font-weight: 600; color: var(--primary);">{{ prov.productos.count }} productos</span>
+        <span class="btn btn-accent btn-sm" style="padding: 4px 8px; font-size: 11px;">Ver catálogo</span>
+      </div>
+    </div>
+  {% empty %}
+    <p style="color: var(--text-muted); font-style: italic;">No hay empresas proveedoras registradas con productos en este momento.</p>
+  {% endfor %}
+
+  {% if productos_sin_proveedor %}
+    <div class="company-card" id="card-prov-other" onclick="verProductosProveedor('other')" style="background: #ffffff; border: 2px solid var(--border-color); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 32px; background: #f3f4f6; padding: 10px; border-radius: 12px;">📦</span>
+        <div>
+          <h4 style="margin: 0; color: var(--text-main); font-size: 16px; font-weight: 700;">Otros Productos</h4>
+          <span style="font-size: 11px; color: var(--text-muted);">Sin proveedor asignado</span>
+        </div>
+      </div>
+      <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
+        Productos variados de la plataforma.
+      </div>
+      <div style="margin-top: auto; padding-top: 10px; border-top: 1px solid #fdf6f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+        <span style="font-weight: 600; color: var(--text-muted);">{{ productos_sin_proveedor.count }} productos</span>
+        <span class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;">Ver catálogo</span>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Product Lists grouped by Company -->
+<div id="catalogos-proveedores" style="margin-top: 20px;">
+  {% for prov in proveedores %}
+    <div class="catalogo-proveedor-container" id="catalogo-prov-{{ prov.id }}" style="display: none; animation: fadeIn 0.3s ease;">
+      <div style="background: #fff3eb; border-left: 5px solid var(--primary); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="margin: 0; color: var(--primary-dark);">🛍️ Catálogo de {{ prov.nombre }}</h3>
+          <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted);">Dirección: {{ prov.direccion }} | RUC: {{ prov.ruc }}</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="ocultarCatalogos()">✖ Cerrar Catálogo</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Stock Real</th>
+              <th>Precio ($)</th>
+              <th style="text-align: center; min-width: 150px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for prod in prov.productos.all %}
+              <tr>
+                <td><strong>{{ prod.nombre }}</strong></td>
+                <td>{{ prod.descripcion }}</td>
+                <td>
+                  {% if prod.cantidad > 0 %}
+                    <span class="badge" style="background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; font-weight: bold;">{{ prod.cantidad }} unidades</span>
+                  {% else %}
+                    <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: bold;">Agotado</span>
+                  {% endif %}
+                </td>
+                <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
+                <td>
+                  <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                    {% if prod.cantidad > 0 %}
+                      <button type="button" class="btn btn-sm" style="width: 100%;" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
+                        💳 Realizar Pedido
+                      </button>
+                    {% else %}
+                      <button class="btn btn-secondary btn-sm" style="width: 100%;" disabled>Sin Stock</button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endfor %}
+
+  {% if productos_sin_proveedor %}
+    <div class="catalogo-proveedor-container" id="catalogo-prov-other" style="display: none; animation: fadeIn 0.3s ease;">
+      <div style="background: #f3f4f6; border-left: 5px solid #6b7280; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="margin: 0; color: #374151;">🛍️ Otros Productos</h3>
+          <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted);">Productos sin empresa proveedora asignada</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="ocultarCatalogos()">✖ Cerrar Catálogo</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Stock Real</th>
+              <th>Precio ($)</th>
+              <th style="text-align: center; min-width: 150px;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for prod in productos_sin_proveedor %}
+              <tr>
+                <td><strong>{{ prod.nombre }}</strong></td>
+                <td>{{ prod.descripcion }}</td>
+                <td>
+                  {% if prod.cantidad > 0 %}
+                    <span class="badge" style="background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; font-weight: bold;">{{ prod.cantidad }} unidades</span>
+                  {% else %}
+                    <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: bold;">Agotado</span>
+                  {% endif %}
+                </td>
+                <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
+                <td>
+                  <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                    {% if prod.cantidad > 0 %}
+                      <button type="button" class="btn btn-sm" style="width: 100%;" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
+                        💳 Realizar Pedido
+                      </button>
+                    {% else %}
+                      <button class="btn btn-secondary btn-sm" style="width: 100%;" disabled>Sin Stock</button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+</div>
 
 <!-- ========== PASARELA DE PAGOS MODAL ========== -->
 <div class="modal-overlay" id="paymentModal">
@@ -526,6 +643,41 @@
 </div>
 
 <script>
+  function verProductosProveedor(provId) {
+    // Hide all containers
+    document.querySelectorAll('.catalogo-proveedor-container').forEach(el => {
+      el.style.display = 'none';
+    });
+    
+    // Deactivate all cards
+    document.querySelectorAll('.company-card').forEach(el => {
+      el.classList.remove('active');
+    });
+    
+    // Show target container
+    const container = document.getElementById('catalogo-prov-' + provId);
+    if (container) {
+      container.style.display = 'block';
+      // Scroll smoothly to container
+      container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    // Activate selected card
+    const card = document.getElementById('card-prov-' + provId);
+    if (card) {
+      card.classList.add('active');
+    }
+  }
+
+  function ocultarCatalogos() {
+    document.querySelectorAll('.catalogo-proveedor-container').forEach(el => {
+      el.style.display = 'none';
+    });
+    document.querySelectorAll('.company-card').forEach(el => {
+      el.classList.remove('active');
+    });
+  }
+
   let currentProductId = null;
   let currentPrecio = 0;
   let currentMaxCantidad = 1;
