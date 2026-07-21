@@ -63,6 +63,22 @@ La base de datos actual cuenta con los siguientes usuarios con privilegios de **
 
 *(Las contraseñas de estos usuarios corresponden a las que se configuraron al momento de crearlos. Si eres ajeno al proyecto y no conoces dichas contraseñas, puedes seguir los pasos a continuación para crear un nuevo administrador).*
 
+### Usuarios de Prueba (Roles)
+
+Para poder testear las distintas funcionalidades de la aplicación, ya existen usuarios registrados en la base de datos para cada rol. *(Nota: Las contraseñas son las que se definieron al momento de crearlos en el sistema)*:
+
+**Proveedores:**
+- `cocacola`
+- `pepsico`
+- `nestle`
+
+**Vendedores:**
+- `carlos_bueno`
+- `juan_malo`
+
+**Compradores (Tenderos):**
+- `don_pepe`
+
 ### ¿Cómo crear un nuevo usuario Administrador?
 
 Si necesitas ingresar al panel de administración (en `http://127.0.0.1:8000/admin/`) y no conoces la contraseña de los usuarios mencionados arriba, puedes crear fácilmente un nuevo superusuario. 
