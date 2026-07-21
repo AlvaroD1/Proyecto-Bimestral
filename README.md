@@ -68,16 +68,16 @@ La base de datos actual cuenta con los siguientes usuarios con privilegios de **
 Para poder testear las distintas funcionalidades de la aplicación, ya existen usuarios registrados en la base de datos para cada rol. *(Nota: Las contraseñas son las que se definieron al momento de crearlos en el sistema)*:
 
 **Proveedores:**
-- `cocacola`
-- `pepsico`
-- `nestle`
+- `cocacola` `CocaCola123`
+- `pepsico` `PepsiCo123`
+- `nestle` `Nestle123`
 
 **Vendedores:**
-- `carlos_bueno`
-- `juan_malo`
+- `carlos_bueno` `VendedorGood1`
+- `juan_malo` `VendedorBad1`
 
 **Compradores (Tenderos):**
-- `don_pepe`
+- `don_pepe` `DonPepe123`
 
 ### ¿Cómo crear un nuevo usuario Administrador?
 
