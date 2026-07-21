@@ -1,0 +1,205 @@
+{% extends "master.html" %}
+
+{% block title %}Lista de Reposición - Conexia{% endblock %}
+
+{% block content %}
+<style>
+  .proveedor-group {
+    background: #ffffff;
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    padding: 0;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .proveedor-group:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .proveedor-group-header {
+    background: linear-gradient(135deg, #fff7ed, #fff3eb);
+    padding: 16px 20px;
+    border-bottom: 1px solid #fed7aa;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .proveedor-group-header h4 {
+    margin: 0;
+    color: var(--primary-dark);
+    font-size: 15px;
+  }
+  .lista-enviada-card {
+    background: #ffffff;
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+  }
+  .lista-enviada-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+  <div>
+    <h2 style="margin: 0;">📋 Lista de Reposición</h2>
+    <p style="color: var(--text-muted); font-size: 14px; margin: 5px 0 0 0;">
+      Gestiona tu lista de productos a reponer y envíala a los proveedores correspondientes.
+    </p>
+  </div>
+  <a href="{% url 'dashboard_comprador' %}" class="btn btn-secondary btn-sm">← Volver al Dashboard</a>
+</div>
+
+<!-- ========== LISTA ACTIVA (BORRADOR) ========== -->
+{% if lista_activa %}
+  <div style="background: linear-gradient(135deg, #eff6ff, #f0f9ff); border: 1.5px solid #93c5fd; border-radius: 16px; padding: 25px; margin-bottom: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+      <h3 style="margin: 0; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 24px; background: #dbeafe; padding: 6px; border-radius: 10px;">📝</span>
+        Lista Borrador #{{ lista_activa.id }}
+      </h3>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background: #dbeafe; color: #1e40af; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+          {{ lista_activa.obtener_total_items }} producto{{ lista_activa.obtener_total_items|pluralize:"s" }}
+        </span>
+        <span style="color: var(--text-muted); font-size: 12px;">
+          Creada: {{ lista_activa.fecha_creacion|date:"d/m/Y H:i" }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Items agrupados por proveedor -->
+    {% if items_por_proveedor %}
+      {% for proveedor_nombre, items in items_por_proveedor.items %}
+        <div class="proveedor-group">
+          <div class="proveedor-group-header">
+            <span style="font-size: 22px;">🏢</span>
+            <h4>{{ proveedor_nombre }}</h4>
+            <span style="margin-left: auto; background: #fff7ed; color: #c2410c; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #fed7aa;">
+              {{ items|length }} ítem{{ items|length|pluralize:"s" }}
+            </span>
+          </div>
+          <div style="padding: 0;">
+            <table style="margin: 0; width: 100%;">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Stock Actual</th>
+                  <th>Cantidad Solicitada</th>
+                  <th style="text-align: center;">Quitar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                  <tr>
+                    <td><strong>{{ item.producto.nombre }}</strong></td>
+                    <td>
+                      <span style="font-weight: 600; color: {% if item.producto.cantidad == 0 %}#dc2626{% elif item.producto.stock_bajo %}#ea580c{% else %}var(--text-main){% endif %};">
+                        {{ item.producto.cantidad }}
+                      </span>
+                      {% if item.producto.stock_bajo %}
+                        <span style="font-size: 11px; color: #ea580c; font-weight: 600;"> (bajo)</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span style="font-weight: 700; color: #1e40af; font-size: 16px;">{{ item.cantidad_solicitada }}</span>
+                      <span style="color: var(--text-muted); font-size: 12px;"> uds.</span>
+                    </td>
+                    <td style="text-align: center;">
+                      <a href="{% url 'eliminar_item_reposicion' item.id %}" class="btn btn-danger btn-sm" style="padding: 4px 10px;" onclick="return confirm('¿Eliminar {{ item.producto.nombre }} de la lista?');">✖</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Formulario de envío -->
+    <form action="{% url 'enviar_lista_reposicion' lista_activa.id %}" method="post" style="margin-top: 20px;">
+      {% csrf_token %}
+      <div style="background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 18px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: #1e40af; margin-bottom: 8px;">📝 Notas adicionales para el proveedor (opcional)</label>
+        <textarea name="notas" rows="3" placeholder="Ej: Necesito los productos antes del viernes. Urgente para los de la categoría limpieza..." style="width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; resize: vertical; box-sizing: border-box; font-family: inherit;">{{ lista_activa.notas|default:"" }}</textarea>
+        <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+          <button type="submit" class="btn" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none; padding: 10px 24px; font-size: 15px;" onclick="return confirm('¿Enviar esta lista de reposición a los proveedores?');">
+            📨 Enviar Lista de Reposición
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+{% else %}
+  <div style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; padding: 40px; text-align: center; margin-bottom: 30px;">
+    <span style="font-size: 48px; display: block; margin-bottom: 12px;">📋</span>
+    <h3 style="color: #64748b; margin: 0 0 8px 0;">No tienes una lista de reposición activa</h3>
+    <p style="color: #94a3b8; font-size: 14px; margin: 0;">
+      Cuando tengas productos con stock bajo, podrás agregarlos a una lista desde tu dashboard y enviarla a los proveedores.
+    </p>
+    <a href="{% url 'dashboard_comprador' %}" class="btn btn-sm" style="margin-top: 15px;">← Ir al Dashboard</a>
+  </div>
+{% endif %}
+
+<!-- ========== HISTORIAL DE LISTAS ENVIADAS ========== -->
+<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
+
+<h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+  <span style="font-size: 22px;">📬</span> Historial de Listas Enviadas
+</h3>
+
+{% if listas_enviadas %}
+  {% for lista in listas_enviadas %}
+    <div class="lista-enviada-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="background: #ecfdf5; color: #065f46; padding: 5px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1px solid #a7f3d0;">✅ Enviada</span>
+          <span style="font-weight: 700; color: var(--text-main);">Lista #{{ lista.id }}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted);">
+          <span>📅 {{ lista.fecha_envio|date:"d/m/Y H:i" }}</span>
+          <span>📦 {{ lista.obtener_total_items }} producto{{ lista.obtener_total_items|pluralize:"s" }}</span>
+        </div>
+      </div>
+      {% if lista.notas %}
+        <div style="margin-top: 10px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; font-size: 13px; color: #64748b; border-left: 3px solid #cbd5e1;">
+          📝 {{ lista.notas }}
+        </div>
+      {% endif %}
+      <div style="margin-top: 12px;">
+        <table style="margin: 0; width: 100%; font-size: 13px;">
+          <thead>
+            <tr>
+              <th style="padding: 6px 12px;">Producto</th>
+              <th style="padding: 6px 12px;">Cantidad</th>
+              <th style="padding: 6px 12px;">Proveedor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in lista.items.all %}
+              <tr>
+                <td style="padding: 6px 12px;">{{ item.producto.nombre }}</td>
+                <td style="padding: 6px 12px; font-weight: 600;">{{ item.cantidad_solicitada }} uds.</td>
+                <td style="padding: 6px 12px;">
+                  {% if item.producto.proveedor %}
+                    {{ item.producto.proveedor.nombre }}
+                  {% else %}
+                    <span style="color: var(--text-muted);">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <p style="color: var(--text-muted); font-style: italic;">No has enviado listas de reposición aún.</p>
+{% endif %}
+
+{% endblock %}

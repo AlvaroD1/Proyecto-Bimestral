@@ -35,4 +35,12 @@ urlpatterns = [
     path('postulacion/aprobar/<int:id>/', views.aprobar_postulacion, name='aprobar_postulacion'),
     path('postulacion/rechazar/<int:id>/', views.rechazar_postulacion, name='rechazar_postulacion'),
     path('producto/solicitar-vendedor/<int:id>/', views.solicitar_vendedor, name='solicitar_vendedor'),
+
+    # Alertas de stock y lista de reposición
+    path('reposicion/agregar/<int:producto_id>/', views.agregar_a_reposicion, name='agregar_a_reposicion'),
+    path('reposicion/lista/', views.ver_lista_reposicion, name='ver_lista_reposicion'),
+    path('reposicion/eliminar/<int:item_id>/', views.eliminar_item_reposicion, name='eliminar_item_reposicion'),
+    path('reposicion/enviar/<int:lista_id>/', views.enviar_lista_reposicion, name='enviar_lista_reposicion'),
+    path('inventario/actualizar/<int:inventario_id>/', views.actualizar_inventario, name='actualizar_inventario'),
 ]
+

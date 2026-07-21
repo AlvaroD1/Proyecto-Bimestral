@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.hashers import make_password
-from .models import Proveedor, Vendedor, Comprador, Producto
+from .models import Proveedor, Vendedor, Comprador, Producto, ItemReposicion
 
 def validar_usuario_unico(usuario, current_id=None, current_role=None):
     # Check Proveedor (exclude current if role matches)
@@ -164,5 +164,26 @@ class CompradorForm(forms.ModelForm):
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['nombre', 'descripcion', 'cantidad', 'precio', 'proveedor', 'vendedor']
+        fields = ['nombre', 'descripcion', 'cantidad', 'precio', 'stock_minimo', 'proveedor', 'vendedor']
+        labels = {
+            'stock_minimo': 'Stock Mínimo (Umbral de alerta)',
+        }
+        help_texts = {
+            'stock_minimo': 'Cuando el stock llegue a este número o menos, se generará una alerta de reposición.',
+        }
+
+
+class ItemReposicionForm(forms.Form):
+    """Formulario simple para agregar un producto a la lista de reposición."""
+    cantidad = forms.IntegerField(
+        min_value=1,
+        initial=10,
+        label='Cantidad a solicitar',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'style': 'width: 80px; text-align: center;',
+            'min': '1',
+        })
+    )
+
 

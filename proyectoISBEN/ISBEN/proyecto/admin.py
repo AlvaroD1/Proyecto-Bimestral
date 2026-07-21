@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion
+from .models import (
+    Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion,
+    InventarioTienda, ListaReposicion, ItemReposicion, ConfiguracionFacturacion
+)
 
 class ProveedorAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'ruc', 'direccion')
@@ -14,7 +17,7 @@ class CompradorAdmin(admin.ModelAdmin):
     search_fields = ('nombre', 'cedula')
 
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'cantidad', 'precio', 'proveedor', 'vendedor')
+    list_display = ('nombre', 'cantidad', 'stock_minimo', 'precio', 'proveedor', 'vendedor')
     search_fields = ('nombre',)
     list_filter = ('proveedor', 'vendedor')
 
@@ -28,9 +31,40 @@ class PostulacionAdmin(admin.ModelAdmin):
     list_filter = ('estado', 'fecha')
     search_fields = ('vendedor__nombre', 'producto__nombre')
 
+class ItemReposicionInline(admin.TabularInline):
+    model = ItemReposicion
+    extra = 0
+    readonly_fields = ('fecha_agregado',)
+
+class ListaReposicionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'comprador', 'estado', 'fecha_creacion', 'fecha_envio', 'obtener_total_items')
+    list_filter = ('estado', 'fecha_creacion')
+    search_fields = ('comprador__nombre',)
+    inlines = [ItemReposicionInline]
+
+class ItemReposicionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'lista', 'producto', 'cantidad_solicitada', 'fecha_agregado')
+    list_filter = ('lista__estado',)
+    search_fields = ('producto__nombre',)
+
+class ConfiguracionFacturacionAdmin(admin.ModelAdmin):
+    list_display = ('comprador', 'sistema_activo', 'tipo_sistema', 'ultimo_sync')
+    list_filter = ('sistema_activo', 'tipo_sistema')
+    search_fields = ('comprador__nombre',)
+
+class InventarioTiendaAdmin(admin.ModelAdmin):
+    list_display = ('comprador', 'producto', 'cantidad', 'stock_minimo')
+    list_filter = ('comprador', 'producto__proveedor')
+    search_fields = ('comprador__nombre', 'producto__nombre')
+
 admin.site.register(Proveedor, ProveedorAdmin)
 admin.site.register(Vendedor, VendedorAdmin)
 admin.site.register(Comprador, CompradorAdmin)
 admin.site.register(Producto, ProductoAdmin)
 admin.site.register(Pedido, PedidoAdmin)
 admin.site.register(Postulacion, PostulacionAdmin)
+admin.site.register(ListaReposicion, ListaReposicionAdmin)
+admin.site.register(ItemReposicion, ItemReposicionAdmin)
+admin.site.register(ConfiguracionFacturacion, ConfiguracionFacturacionAdmin)
+admin.site.register(InventarioTienda, InventarioTiendaAdmin)
+

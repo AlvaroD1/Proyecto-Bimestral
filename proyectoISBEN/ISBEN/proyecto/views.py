@@ -3,7 +3,10 @@ from django.contrib import messages
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
 from decimal import Decimal
-from .models import Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion
+from .models import (
+    Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion,
+    InventarioTienda, ListaReposicion, ItemReposicion
+)
 from .forms import ProveedorForm, VendedorForm, CompradorForm, ProductoForm
 
 def index(request):
@@ -84,12 +87,19 @@ def dashboard_proveedor(request):
     productos = proveedor.obtener_productos()
     pedidos = proveedor.obtener_pedidos()
     postulaciones = Postulacion.objects.filter(producto__proveedor=proveedor).order_by('-fecha')
+
+    # Listas de reposición recibidas de tenderos para productos de este proveedor
+    listas_reposicion_recibidas = ListaReposicion.objects.filter(
+        estado='Enviada',
+        items__producto__proveedor=proveedor
+    ).distinct().prefetch_related('items__producto', 'comprador').order_by('-fecha_envio')[:10]
     
     contexto = {
         'proveedor': proveedor,
         'productos': productos,
         'pedidos': pedidos,
         'postulaciones': postulaciones,
+        'listas_reposicion_recibidas': listas_reposicion_recibidas,
         'current_role': 'proveedor',
         'current_role_name': proveedor.nombre,
     }
@@ -156,6 +166,24 @@ def dashboard_comprador(request):
     proveedores = Proveedor.objects.filter(productos__isnull=False).distinct().prefetch_related('productos')
     # También productos que no tengan proveedor
     productos_sin_proveedor = Producto.objects.filter(proveedor__isnull=True)
+
+    # ========== INVENTARIO DE MI TIENDA ==========
+    inventario = InventarioTienda.objects.filter(
+        comprador=comprador
+    ).select_related('producto', 'producto__proveedor').order_by('producto__nombre')
+    
+    # Productos con stock bajo en la tienda del tendero
+    inventario_stock_bajo = [inv for inv in inventario if inv.stock_bajo()]
+
+    # Lista de reposición activa (borrador) del tendero
+    lista_reposicion_activa = ListaReposicion.objects.filter(
+        comprador=comprador, estado='Borrador'
+    ).prefetch_related('items__producto__proveedor').first()
+
+    # Listas enviadas recientes (últimas 5)
+    listas_enviadas = ListaReposicion.objects.filter(
+        comprador=comprador, estado='Enviada'
+    ).prefetch_related('items__producto__proveedor')[:5]
     
     contexto = {
         'comprador': comprador,
@@ -163,6 +191,10 @@ def dashboard_comprador(request):
         'productos_sin_proveedor': productos_sin_proveedor,
         'pedidos': pedidos,
         'total_gastado': comprador.obtener_total_gastado(),
+        'inventario': inventario,
+        'inventario_stock_bajo': inventario_stock_bajo,
+        'lista_reposicion_activa': lista_reposicion_activa,
+        'listas_enviadas': listas_enviadas,
         'current_role': 'comprador',
         'current_role_name': comprador.nombre,
     }
@@ -375,7 +407,20 @@ def recibir_pedido(request, id):
     if pedido.estado in ['Pendiente', 'Enviado']:
         pedido.estado = 'Recibido'
         pedido.save()
-        messages.success(request, f"Has marcado el pedido #{pedido.id} como RECIBIDO. ¡Gracias!")
+        
+        # Auto-agregar al inventario de la tienda del tendero
+        inv, created = InventarioTienda.objects.get_or_create(
+            comprador=pedido.comprador,
+            producto=pedido.producto,
+            defaults={'cantidad': 0, 'stock_minimo': 5}
+        )
+        inv.cantidad += pedido.cantidad
+        inv.save()
+        
+        messages.success(request, 
+            f"Has marcado el pedido #{pedido.id} como RECIBIDO. "
+            f"Se agregaron {pedido.cantidad} unidad(es) de '{pedido.producto.nombre}' a tu inventario de tienda. ¡Gracias!"
+        )
     else:
         messages.error(request, f"El pedido ya está en estado {pedido.estado}.")
         
@@ -591,3 +636,204 @@ def solicitar_vendedor(request, id):
     producto.save()
     messages.success(request, f"Se ha enviado la petición a todos los vendedores para postularse al producto '{producto.nombre}'.")
     return redirect('dashboard_proveedor')
+
+
+# ========== SISTEMA DE ALERTAS DE STOCK Y REPOSICIÓN (TENDERO/COMPRADOR) ==========
+
+def agregar_a_reposicion(request, producto_id):
+    """Agrega un producto a la lista de reposición borrador del tendero (comprador)."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        messages.error(request, "Solo los tenderos pueden gestionar listas de reposición.")
+        return redirect('index')
+    
+    comprador = get_object_or_404(Comprador, pk=role_id)
+    producto = get_object_or_404(Producto, pk=producto_id)
+    
+    if request.method == 'POST':
+        try:
+            cantidad = int(request.POST.get('cantidad', 10))
+        except (ValueError, TypeError):
+            cantidad = 10
+        
+        if cantidad <= 0:
+            messages.error(request, "La cantidad debe ser mayor a 0.")
+            return redirect('dashboard_comprador')
+        
+        # Obtener o crear la lista borrador activa
+        lista, lista_creada = ListaReposicion.objects.get_or_create(
+            comprador=comprador,
+            estado='Borrador',
+            defaults={'notas': ''}
+        )
+        
+        # Verificar si el producto ya está en la lista
+        item_existente = ItemReposicion.objects.filter(lista=lista, producto=producto).first()
+        if item_existente:
+            item_existente.cantidad_solicitada += cantidad
+            item_existente.save()
+            messages.success(request, 
+                f"📦 Se actualizó la cantidad de '{producto.nombre}' en tu lista de reposición. "
+                f"Nueva cantidad total: {item_existente.cantidad_solicitada} unidades."
+            )
+        else:
+            ItemReposicion.objects.create(
+                lista=lista,
+                producto=producto,
+                cantidad_solicitada=cantidad
+            )
+            messages.success(request, 
+                f"✅ '{producto.nombre}' agregado a tu lista de reposición ({cantidad} unidades)."
+            )
+    
+    return redirect('dashboard_comprador')
+
+
+def ver_lista_reposicion(request):
+    """Muestra la lista de reposición activa del tendero (comprador)."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        return redirect('index')
+    
+    comprador = get_object_or_404(Comprador, pk=role_id)
+    
+    # Lista borrador activa
+    lista_activa = ListaReposicion.objects.filter(
+        comprador=comprador, estado='Borrador'
+    ).prefetch_related('items__producto__proveedor').first()
+    
+    # Historial de listas enviadas
+    listas_enviadas = ListaReposicion.objects.filter(
+        comprador=comprador, estado='Enviada'
+    ).prefetch_related('items__producto__proveedor').order_by('-fecha_envio')[:10]
+    
+    # Agrupar ítems por proveedor si hay lista activa
+    items_por_proveedor = None
+    if lista_activa:
+        items_por_proveedor = lista_activa.obtener_items_por_proveedor()
+    
+    contexto = {
+        'comprador': comprador,
+        'lista_activa': lista_activa,
+        'items_por_proveedor': items_por_proveedor,
+        'listas_enviadas': listas_enviadas,
+        'current_role': 'comprador',
+        'current_role_name': comprador.nombre,
+    }
+    return render(request, 'lista_reposicion.html', contexto)
+
+
+def eliminar_item_reposicion(request, item_id):
+    """Elimina un ítem de la lista de reposición borrador."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        return redirect('index')
+    
+    item = get_object_or_404(ItemReposicion, pk=item_id)
+    
+    # Verificar que la lista pertenece al comprador y está en borrador
+    if item.lista.comprador_id != role_id or item.lista.estado != 'Borrador':
+        messages.error(request, "No puedes modificar esta lista.")
+        return redirect('dashboard_comprador')
+    
+    nombre_producto = item.producto.nombre
+    lista = item.lista
+    item.delete()
+    
+    # Si la lista quedó vacía, eliminarla
+    if lista.items.count() == 0:
+        lista.delete()
+        messages.info(request, f"Se eliminó '{nombre_producto}' y la lista quedó vacía, por lo que fue eliminada.")
+    else:
+        messages.success(request, f"Se eliminó '{nombre_producto}' de la lista de reposición.")
+    
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect('dashboard_comprador')
+
+
+def enviar_lista_reposicion(request, lista_id):
+    """Envía la lista de reposición (cambia estado a 'Enviada')."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        return redirect('index')
+    
+    lista = get_object_or_404(ListaReposicion, pk=lista_id)
+    
+    if lista.comprador_id != role_id:
+        messages.error(request, "No puedes enviar esta lista.")
+        return redirect('dashboard_comprador')
+    
+    if lista.estado != 'Borrador':
+        messages.info(request, "Esta lista ya fue enviada.")
+        return redirect('dashboard_comprador')
+    
+    if lista.items.count() == 0:
+        messages.error(request, "No puedes enviar una lista vacía.")
+        return redirect('dashboard_comprador')
+    
+    # Guardar notas si se enviaron
+    if request.method == 'POST':
+        notas = request.POST.get('notas', '').strip()
+        if notas:
+            lista.notas = notas
+    
+    lista.estado = 'Enviada'
+    lista.fecha_envio = timezone.now()
+    lista.save()
+    
+    # Generar resumen para el mensaje
+    total_items = lista.items.count()
+    total_unidades = sum(item.cantidad_solicitada for item in lista.items.all())
+    
+    messages.success(request, 
+        f"📨 Lista de reposición enviada con éxito. "
+        f"{total_items} producto(s), {total_unidades} unidades totales solicitadas. "
+        f"Los proveedores podrán verla en su panel de control."
+    )
+    
+    return redirect('dashboard_comprador')
+
+
+def actualizar_inventario(request, inventario_id):
+    """Permite al tendero actualizar la cantidad de un producto en su inventario."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        return redirect('index')
+    
+    inv = get_object_or_404(InventarioTienda, pk=inventario_id)
+    
+    if inv.comprador_id != role_id:
+        messages.error(request, "No puedes modificar este inventario.")
+        return redirect('dashboard_comprador')
+    
+    if request.method == 'POST':
+        try:
+            nueva_cantidad = int(request.POST.get('cantidad', inv.cantidad))
+        except (ValueError, TypeError):
+            nueva_cantidad = inv.cantidad
+        
+        if nueva_cantidad < 0:
+            nueva_cantidad = 0
+        
+        inv.cantidad = nueva_cantidad
+        
+        # Actualizar stock mínimo si se envió
+        try:
+            nuevo_minimo = int(request.POST.get('stock_minimo', inv.stock_minimo))
+            if nuevo_minimo >= 0:
+                inv.stock_minimo = nuevo_minimo
+        except (ValueError, TypeError):
+            pass
+        
+        inv.save()
+        messages.success(request, f"📦 Inventario de '{inv.producto.nombre}' actualizado a {inv.cantidad} unidades.")
+    
+    return redirect('dashboard_comprador')
+

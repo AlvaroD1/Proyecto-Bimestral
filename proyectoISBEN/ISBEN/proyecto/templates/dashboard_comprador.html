@@ -300,6 +300,169 @@
 
 <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
 
+<!-- ========== INVENTARIO DE MI TIENDA ========== -->
+<h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+  <span style="font-size: 24px;">🏪</span> Inventario de mi Tienda
+</h3>
+{% if inventario %}
+  <div class="table-responsive" style="margin-bottom: 30px; background: #ffffff;">
+    <table style="margin: 0; width: 100%;">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Stock Actual</th>
+          <th>Stock Mínimo</th>
+          <th>Proveedor</th>
+          <th style="text-align: center; min-width: 250px;">Actualizar Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in inventario %}
+          <tr {% if inv.stock_bajo %}style="background: #fff5f5;"{% endif %}>
+            <td>
+              <strong>{{ inv.producto.nombre }}</strong>
+              {% if inv.stock_bajo %}
+                <br><span style="font-size: 11px; color: #dc2626; font-weight: 700;">⚠️ STOCK BAJO</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-weight: 700; color: {% if inv.stock_bajo %}#dc2626{% else %}var(--text-main){% endif %}; font-size: 18px;">
+                {{ inv.cantidad }}
+              </span>
+            </td>
+            <td>
+              <span style="color: var(--text-muted); font-weight: 600;">{{ inv.stock_minimo }}</span>
+            </td>
+            <td>
+              {% if inv.producto.proveedor %}
+                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ inv.producto.proveedor.nombre }}</span>
+              {% else %}
+                <span class="badge" style="background-color: #f3f4f6; color: #6b7280; border-color: #d1d5db;">Sin proveedor</span>
+              {% endif %}
+            </td>
+            <td>
+              <form action="{% url 'actualizar_inventario' inv.id %}" method="post" style="margin: 0; display: flex; gap: 6px; align-items: center; justify-content: center;">
+                {% csrf_token %}
+                <input type="number" name="cantidad" value="{{ inv.cantidad }}" min="0" style="width: 70px; text-align: center; padding: 6px 8px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; font-weight: 600;" title="Stock Actual">
+                <input type="number" name="stock_minimo" value="{{ inv.stock_minimo }}" min="0" style="width: 70px; text-align: center; padding: 6px 8px; border: 1.5px dashed #cbd5e1; border-radius: 8px; font-size: 12px; color: var(--text-muted);" title="Stock Mínimo (Alerta)">
+                <button type="submit" class="btn btn-sm" style="background: #e2e8f0; color: #475569; border: none; white-space: nowrap;">
+                  💾 Guardar
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p style="color: var(--text-muted); font-style: italic; margin-bottom: 30px;">No tienes productos en tu inventario aún. El inventario se actualizará automáticamente cuando recibas pedidos.</p>
+{% endif %}
+
+<!-- ========== ALERTAS DE STOCK BAJO ========== -->
+{% if inventario_stock_bajo %}
+  <div style="background: linear-gradient(135deg, #fef2f2, #fff5f5); border: 1.5px solid #fca5a5; border-radius: 16px; padding: 25px; margin-bottom: 30px; animation: fadeInUp 0.3s ease-out;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+      <h3 style="margin: 0; color: #991b1b; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 28px; background: #fee2e2; padding: 8px; border-radius: 12px;">🚨</span>
+        Alerta de Stock Bajo
+      </h3>
+      <span style="background: #fee2e2; color: #991b1b; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1px solid #fca5a5;">
+        {{ inventario_stock_bajo|length }} producto{{ inventario_stock_bajo|length|pluralize:"s" }} en riesgo
+      </span>
+    </div>
+    <p style="color: #7f1d1d; font-size: 13px; margin-bottom: 20px;">
+      Los siguientes productos tienen stock igual o por debajo de tu umbral mínimo configurado. Agrega los que necesites a tu <strong>lista de reposición</strong> para solicitar más unidades.
+    </p>
+    <div class="table-responsive" style="background: #ffffff; border: 1.5px solid #fecaca;">
+      <table style="margin: 0; width: 100%;">
+        <thead>
+          <tr style="background: #fef2f2;">
+            <th>Producto</th>
+            <th>Stock Actual</th>
+            <th style="text-align: center; min-width: 200px;">Agregar a Lista de Reposición</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in inventario_stock_bajo %}
+            <tr>
+              <td>
+                <strong>{{ inv.producto.nombre }}</strong>
+              </td>
+              <td>
+                <span style="font-weight: 700; color: #dc2626; font-size: 18px;">
+                  {{ inv.cantidad }}
+                </span>
+                <span style="color: #991b1b; font-size: 12px;"> (Min: {{ inv.stock_minimo }})</span>
+              </td>
+              <td>
+                <form action="{% url 'agregar_a_reposicion' inv.producto.id %}" method="post" style="margin: 0; display: flex; gap: 6px; align-items: center; justify-content: center;">
+                  {% csrf_token %}
+                  <input type="number" name="cantidad" value="10" min="1" style="width: 70px; text-align: center; padding: 6px 8px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; font-weight: 600;">
+                  <button type="submit" class="btn btn-sm" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; white-space: nowrap;">
+                    📋 Agregar a Lista
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<!-- ========== LISTA DE REPOSICIÓN ACTIVA (RESUMEN) ========== -->
+{% if lista_reposicion_activa %}
+  <div style="background: linear-gradient(135deg, #eff6ff, #f0f9ff); border: 1.5px solid #93c5fd; border-radius: 16px; padding: 25px; margin-bottom: 30px; animation: fadeInUp 0.4s ease-out;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+      <h3 style="margin: 0; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 28px; background: #dbeafe; padding: 8px; border-radius: 12px;">📋</span>
+        Lista de Reposición (Borrador)
+      </h3>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <a href="{% url 'ver_lista_reposicion' %}" class="btn btn-sm" style="background: #3b82f6; color: white; border: none;">📄 Ver Lista Completa</a>
+        <form action="{% url 'enviar_lista_reposicion' lista_reposicion_activa.id %}" method="post" style="margin: 0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none;" onclick="return confirm('¿Enviar esta lista de reposición a los proveedores?');">
+            📨 Enviar a Proveedores
+          </button>
+        </form>
+      </div>
+    </div>
+    <div class="table-responsive" style="background: #ffffff; border: 1.5px solid #bfdbfe;">
+      <table style="margin: 0; width: 100%;">
+        <thead>
+          <tr style="background: #eff6ff;">
+            <th>Producto</th>
+            <th>Cantidad Solicitada</th>
+            <th style="text-align: center;">Quitar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in lista_reposicion_activa.items.all %}
+            <tr>
+              <td><strong>{{ item.producto.nombre }}</strong></td>
+              <td>
+                <span style="font-weight: 700; color: #1e40af; font-size: 16px;">{{ item.cantidad_solicitada }}</span>
+                <span style="color: var(--text-muted); font-size: 12px;"> uds.</span>
+              </td>
+              <td style="text-align: center;">
+                <a href="{% url 'eliminar_item_reposicion' item.id %}" class="btn btn-danger btn-sm" style="padding: 4px 10px;" onclick="return confirm('¿Eliminar este producto de la lista?');">✖</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p style="margin: 12px 0 0 0; font-size: 12px; color: #6b7280; text-align: right;">
+      {{ lista_reposicion_activa.obtener_total_items }} producto{{ lista_reposicion_activa.obtener_total_items|pluralize:"s" }} en la lista
+    </p>
+  </div>
+{% endif %}
+
+<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
+
 <h3 style="margin-bottom: 20px;">📋 Mis Pedidos Realizados</h3>
 {% if pedidos %}
   <div class="table-responsive">
@@ -854,5 +1017,72 @@
     if (e.target === this) cerrarPasarela();
   });
 </script>
+
+<!-- ========== INTEGRACIÓN CON FACTURACIÓN (EN ESPERA) ========== -->
+<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+
+<div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 2px dashed #cbd5e1; border-radius: 16px; padding: 30px; position: relative; overflow: hidden; opacity: 0.85;">
+  <!-- Lock overlay -->
+  <div style="position: absolute; top: 15px; right: 15px; background: linear-gradient(135deg, #64748b, #475569); color: white; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; z-index: 2;">
+    🔒 Función en Desarrollo
+  </div>
+  
+  <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+    <span style="font-size: 40px; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); padding: 12px; border-radius: 16px; filter: grayscale(30%);">🧾</span>
+    <div>
+      <h3 style="margin: 0; color: #334155;">Integración con Sistema de Facturación</h3>
+      <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">
+        Conecta tu sistema de facturación para sincronizar inventario de tu tienda automáticamente y generar listas de reposición.
+      </p>
+    </div>
+  </div>
+
+  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 20px; pointer-events: none; user-select: none;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Tipo de Sistema</label>
+        <select disabled style="width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; cursor: not-allowed;">
+          <option>Seleccionar sistema...</option>
+          <option>SRI Ecuador (Facturación Electrónica)</option>
+          <option>Otro ERP / Sistema Contable</option>
+          <option>API Personalizada</option>
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Estado de Conexión</label>
+        <div style="padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; display: inline-block;"></span>
+          Desconectado
+        </div>
+      </div>
+      <div>
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">URL del API</label>
+        <input type="text" disabled placeholder="https://api.tusistema.com/v1" style="width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; cursor: not-allowed; box-sizing: border-box;">
+      </div>
+      <div>
+        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Clave API</label>
+        <input type="password" disabled placeholder="••••••••••••••••" style="width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; cursor: not-allowed; box-sizing: border-box;">
+      </div>
+    </div>
+    
+    <div style="margin-top: 16px; display: flex; gap: 10px;">
+      <button disabled class="btn btn-sm" style="background: #cbd5e1; color: #94a3b8; border: none; cursor: not-allowed; flex: 1;">🔄 Sincronizar Inventario</button>
+      <button disabled class="btn btn-sm" style="background: #cbd5e1; color: #94a3b8; border: none; cursor: not-allowed; flex: 1;">📊 Ver Historial de Sync</button>
+    </div>
+  </div>
+
+  <div style="margin-top: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 10px;">
+    <span style="font-size: 20px;">💡</span>
+    <div style="font-size: 13px; color: #0369a1;">
+      <strong>¿Tienes un sistema de facturación en tu tienda?</strong> Esta funcionalidad estará disponible próximamente. 
+      Cuando se active, podrás conectar tu sistema contable o de facturación electrónica para:
+      <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+        <li>Sincronizar el inventario de tu tienda automáticamente con cada venta que realices</li>
+        <li>Generar alertas de stock bajo y agregar a la lista de reposición automáticamente</li>
+        <li>Llevar un control automatizado de cuándo pedir más productos</li>
+      </ul>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

@@ -129,12 +129,17 @@ class Producto(models.Model):
     proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE, related_name="productos", null=True, blank=True)
     vendedor = models.ForeignKey(Vendedor, on_delete=models.CASCADE, related_name="productos", null=True, blank=True)
     solicitud_vendedor_activa = models.BooleanField(default=False)
+    stock_minimo = models.IntegerField(default=5, help_text="Umbral mínimo de stock para generar alertas de reposición.")
 
     def __str__(self):
         return "%s (Stock: %d)" % (self.nombre, self.cantidad)
 
     def tiene_stock(self):
         return self.cantidad > 0
+
+    def stock_bajo(self):
+        """Retorna True si el stock actual está en o por debajo del umbral mínimo."""
+        return self.cantidad <= self.stock_minimo
 
 class Pedido(models.Model):
     ESTADOS = [
@@ -194,3 +199,104 @@ class Postulacion(models.Model):
 
     def __str__(self):
         return f"Postulación de {self.vendedor.nombre} para {self.producto.nombre} ({self.estado})"
+
+
+# ========== INVENTARIO DE TIENDA DEL TENDERO (COMPRADOR) ==========
+
+class InventarioTienda(models.Model):
+    """Rastrea el stock propio de la tienda del tendero (comprador)."""
+    comprador = models.ForeignKey(Comprador, on_delete=models.CASCADE, related_name="inventario_tienda")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="inventarios_tienda")
+    cantidad = models.IntegerField(default=0, help_text="Stock actual en la tienda del tendero.")
+    stock_minimo = models.IntegerField(default=5, help_text="Umbral mínimo de stock para generar alertas.")
+
+    class Meta:
+        verbose_name = "Inventario de Tienda"
+        verbose_name_plural = "Inventarios de Tienda"
+        unique_together = ('comprador', 'producto')
+
+    def __str__(self):
+        return f"{self.producto.nombre} en tienda de {self.comprador.nombre} ({self.cantidad} uds.)"
+
+    def stock_bajo(self):
+        """Retorna True si el stock actual está en o por debajo del umbral mínimo."""
+        return self.cantidad <= self.stock_minimo
+
+
+# ========== SISTEMA DE ALERTAS DE STOCK Y REPOSICIÓN ==========
+
+class ListaReposicion(models.Model):
+    ESTADOS = [
+        ('Borrador', 'Borrador'),
+        ('Enviada', 'Enviada'),
+    ]
+    comprador = models.ForeignKey(Comprador, on_delete=models.CASCADE, related_name="listas_reposicion")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_envio = models.DateTimeField(blank=True, null=True)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='Borrador')
+    notas = models.TextField(blank=True, null=True, help_text="Notas adicionales para el proveedor.")
+
+    class Meta:
+        verbose_name = "Lista de Reposición"
+        verbose_name_plural = "Listas de Reposición"
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        return f"Lista #{self.id} - {self.comprador.nombre} ({self.estado})"
+
+    def obtener_total_items(self):
+        return self.items.count()
+
+    def obtener_items_por_proveedor(self):
+        """Agrupa los ítems por proveedor para facilitar el envío."""
+        from collections import defaultdict
+        agrupados = defaultdict(list)
+        for item in self.items.select_related('producto', 'producto__proveedor').all():
+            proveedor_nombre = item.producto.proveedor.nombre if item.producto.proveedor else "Sin proveedor"
+            agrupados[proveedor_nombre].append(item)
+        return dict(agrupados)
+
+
+class ItemReposicion(models.Model):
+    lista = models.ForeignKey(ListaReposicion, on_delete=models.CASCADE, related_name="items")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="items_reposicion")
+    cantidad_solicitada = models.IntegerField(default=1)
+    fecha_agregado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Ítem de Reposición"
+        verbose_name_plural = "Ítems de Reposición"
+        unique_together = ('lista', 'producto')
+
+    def __str__(self):
+        return f"{self.cantidad_solicitada}x {self.producto.nombre}"
+
+
+# ========== INTEGRACIÓN CON FACTURACIÓN (EN ESPERA) ==========
+
+class ConfiguracionFacturacion(models.Model):
+    """
+    Modelo preparado para futuras integraciones con sistemas de facturación
+    de los tenderos. Actualmente EN ESPERA - no activo.
+    """
+    TIPOS_SISTEMA = [
+        ('ninguno', 'Ninguno'),
+        ('sri_ecuador', 'SRI Ecuador (Facturación Electrónica)'),
+        ('otro_erp', 'Otro ERP / Sistema Contable'),
+        ('personalizado', 'API Personalizada'),
+    ]
+    comprador = models.OneToOneField(Comprador, on_delete=models.CASCADE, related_name="config_facturacion")
+    sistema_activo = models.BooleanField(default=False, help_text="Indica si el tendero tiene un sistema de facturación conectado.")
+    tipo_sistema = models.CharField(max_length=30, choices=TIPOS_SISTEMA, default='ninguno')
+    url_api = models.URLField(blank=True, null=True, help_text="URL del API del sistema de facturación (futuro).")
+    api_key = models.CharField(max_length=255, blank=True, null=True, help_text="Clave de API (futuro).")
+    ultimo_sync = models.DateTimeField(blank=True, null=True, help_text="Última sincronización exitosa.")
+
+    class Meta:
+        verbose_name = "Configuración de Facturación"
+        verbose_name_plural = "Configuraciones de Facturación"
+
+    def __str__(self):
+        estado = "Activo" if self.sistema_activo else "Inactivo"
+        return f"Facturación {self.comprador.nombre} - {estado}"
+
