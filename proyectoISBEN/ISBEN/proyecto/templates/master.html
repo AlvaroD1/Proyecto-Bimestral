@@ -10,6 +10,7 @@
     <!-- Favicon: Jaguar logo -->
     <link rel="icon" type="image/png" href="{% static 'img/iso_perfil.png' %}?v=2" />
     <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+    {% block extra_head %}{% endblock %}
   </head>
   <body>
     <div class="container">
@@ -76,5 +77,6 @@
         <p>&copy; 2026 <a href="{% url 'index' %}">Conexia</a> — Powered by ISBEN Solution. Todos los derechos reservados.</p>
       </footer>
     </div>
+    {% block extra_scripts %}{% endblock %}
   </body>
 </html>

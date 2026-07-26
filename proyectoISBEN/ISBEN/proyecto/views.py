@@ -2,6 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
 from decimal import Decimal
 from .models import (
     Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion,
@@ -980,3 +983,63 @@ def eliminar_descuento(request, descuento_id):
     messages.success(request, f"Descuento eliminado de '{nombre_producto}'.")
     
     return redirect('dashboard_proveedor')
+
+# ========== API DE SEGUIMIENTO GPS ==========
+
+@csrf_exempt
+def actualizar_ubicacion_vendedor(request):
+    """API para que el vendedor actualice su ubicación GPS."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('vendedor')
+    if not role_id:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+        
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            lat = data.get('latitud')
+            lon = data.get('longitud')
+            if lat is not None and lon is not None:
+                vendedor = Vendedor.objects.get(pk=role_id)
+                vendedor.latitud_actual = float(lat)
+                vendedor.longitud_actual = float(lon)
+                vendedor.save()
+                return JsonResponse({'status': 'ok'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Metodo invalido'}, status=405)
+
+def obtener_ubicacion_vendedor(request, pedido_id):
+    """API para que el comprador obtenga la ubicación del vendedor y su orden en cola."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+        
+    pedido = get_object_or_404(Pedido, pk=pedido_id)
+    if pedido.comprador_id != role_id:
+        return JsonResponse({'error': 'No autorizado'}, status=403)
+        
+    vendedor = pedido.producto.vendedor
+    if not vendedor:
+        return JsonResponse({'error': 'No hay vendedor asignado'}, status=404)
+        
+    pedidos_activos = Pedido.objects.filter(
+        producto__vendedor=vendedor,
+        estado='Enviado'
+    ).order_by('id')
+    
+    total_activos = pedidos_activos.count()
+    posicion = 0
+    for i, p in enumerate(pedidos_activos):
+        if p.id == pedido.id:
+            posicion = i + 1
+            break
+            
+    return JsonResponse({
+        'latitud': vendedor.latitud_actual,
+        'longitud': vendedor.longitud_actual,
+        'posicion_cola': posicion,
+        'total_activos': total_activos
+    })
+

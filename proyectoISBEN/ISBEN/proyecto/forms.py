@@ -121,14 +121,18 @@ class VendedorForm(forms.ModelForm):
 class CompradorForm(forms.ModelForm):
     class Meta:
         model = Comprador
-        fields = ['nombre', 'cedula', 'direccion', 'usuario', 'contrasenia']
+        fields = ['nombre', 'cedula', 'direccion', 'referencias_direccion', 'usuario', 'contrasenia', 'latitud', 'longitud']
         widgets = {
             'contrasenia': forms.PasswordInput(),
+            'latitud': forms.HiddenInput(attrs={'id': 'id_latitud'}),
+            'longitud': forms.HiddenInput(attrs={'id': 'id_longitud'}),
+            'referencias_direccion': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ej. Cerca del parque central...'}),
         }
         labels = {
             'nombre': 'Nombre Completo',
             'cedula': 'Cédula',
-            'direccion': 'Dirección',
+            'direccion': 'Dirección principal',
+            'referencias_direccion': 'Puntos de Referencia',
             'usuario': 'Nombre de Usuario',
             'contrasenia': 'Contraseña',
         }

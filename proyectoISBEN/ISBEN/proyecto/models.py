@@ -89,6 +89,8 @@ class Vendedor(models.Model):
     reputacion = models.CharField(max_length=50, default='Buena')
     calificacion = models.DecimalField(max_digits=3, decimal_places=2, default=5.0)
     descripcion_perfil = models.TextField(blank=True, null=True)
+    latitud_actual = models.FloatField(blank=True, null=True, help_text="Latitud actual para rastreo en tiempo real")
+    longitud_actual = models.FloatField(blank=True, null=True, help_text="Longitud actual para rastreo en tiempo real")
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)
@@ -108,6 +110,9 @@ class Comprador(models.Model):
     direccion = models.CharField(max_length=200)
     usuario = models.CharField(max_length=100, unique=True, null=True, blank=True)
     contrasenia = models.CharField(max_length=128, null=True, blank=True)
+    latitud = models.FloatField(blank=True, null=True, help_text="Latitud de la tienda")
+    longitud = models.FloatField(blank=True, null=True, help_text="Longitud de la tienda")
+    referencias_direccion = models.TextField(blank=True, null=True, help_text="Puntos de referencia para llegar")
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)

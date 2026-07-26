@@ -2,6 +2,10 @@
 
 {% block title %}Dashboard Vendedor - Conexia{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock %}
+
 {% block content %}
 <h2>🤝 Panel de Control: Vendedor Autorizado</h2>
 <p class="text-muted-sm">
@@ -108,6 +112,18 @@
 {% endif %}
 
 <hr class="section-divider">
+
+<!-- ========== ENTREGAS EN CURSO ========== -->
+{% for ped in pedidos %}
+  {% if ped.estado == 'Enviado' %}
+    <div class="tracking-section" style="margin-bottom: 30px; background: #fff; padding: 25px; border-radius: 16px; border: 2px solid var(--accent); box-shadow: 0 10px 20px -5px rgba(255, 194, 47, 0.15);">
+      <h3 style="margin: 0 0 10px 0; color: var(--accent-dark);">🚚 Entrega en Curso - Pedido #{{ ped.id }}</h3>
+      <p style="margin: 0 0 5px 0;"><strong>Comprador:</strong> {{ ped.comprador.nombre }}</p>
+      <p style="margin: 0 0 15px 0;"><strong>Dirección de destino:</strong> {{ ped.comprador.direccion }} <br> <strong>Ref:</strong> {{ ped.comprador.referencias_direccion|default:"Ninguna (Ubicación predeterminada)" }}</p>
+      <div id="map-destino-{{ ped.id }}" class="map-destino" data-lat="{{ ped.comprador.latitud|default:'-3.99313' }}" data-lng="{{ ped.comprador.longitud|default:'-79.20422' }}" style="height: 250px; border-radius: 12px; border: 1px solid var(--border-color); z-index: 1;"></div>
+    </div>
+  {% endif %}
+{% endfor %}
 
 <h3>📋 Pedidos de tus Productos</h3>
 {% if pedidos %}
@@ -434,6 +450,16 @@
   {% endif %}
 </div>
 
+<!-- OVERLAY ALERTA GPS -->
+<div id="gps-warning" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; color: white; flex-direction: column; text-align: center; padding: 20px; backdrop-filter: blur(5px);">
+  <span style="font-size: 50px; margin-bottom: 15px;">📍</span>
+  <h2 style="color: #fca5a5; margin-bottom: 10px; font-size: 28px;">Ubicación GPS Requerida</h2>
+  <p style="font-size: 16px; max-width: 500px; line-height: 1.5; margin-bottom: 25px;">
+    Tienes pedidos <strong>"Enviados"</strong> en curso. Para garantizar la confianza y permitir que el comprador monitoree tu llegada en tiempo real, <strong>debes otorgar permisos de ubicación</strong> a esta página en tu navegador.
+  </p>
+  <button onclick="window.location.reload()" class="btn btn-danger" style="font-size: 16px; padding: 12px 24px;">Recargar y Permitir Ubicación</button>
+</div>
+
 <script>
   function verProductosProveedor(provId) {
     document.querySelectorAll('.catalogo-proveedor-container').forEach(el => {
@@ -463,4 +489,67 @@
   }
 </script>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var mapsDestino = document.querySelectorAll('.map-destino');
+    var isDelivering = mapsDestino.length > 0;
+    
+    // Inicializar mapas de destino
+    mapsDestino.forEach(function(el) {
+      var lat = parseFloat(el.getAttribute('data-lat'));
+      var lng = parseFloat(el.getAttribute('data-lng'));
+      var map = L.map(el.id).setView([lat, lng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      
+      var tiendaIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+      });
+      L.marker([lat, lng], {icon: tiendaIcon}).addTo(map).bindPopup("Destino del pedido");
+    });
+
+    // Lógica de GPS si está entregando
+    if (isDelivering) {
+      // Mostrar overlay momentaneamente hasta tener permiso (o esperar al callback de error)
+      var hasPermission = false;
+      
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(function(position) {
+          hasPermission = true;
+          document.getElementById('gps-warning').style.display = 'none';
+          
+          fetch('/api/vendedor/actualizar-ubicacion/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              latitud: position.coords.latitude,
+              longitud: position.coords.longitude
+            })
+          }).catch(console.error);
+        }, function(error) {
+          // Si hay error o denegación de permisos, bloquear
+          document.getElementById('gps-warning').style.display = 'flex';
+          console.error("Error obteniendo ubicación:", error);
+        }, {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 10000
+        });
+        
+        // Timeout heurístico: Si después de 5 seg no tenemos permiso ni error explícito (el prompt está colgando), no bloqueamos aún, pero si es un entorno donde falla silenciosamente, el timeout de watchPosition lo atrapará.
+      } else {
+        alert("Tu navegador no soporta geolocalización. El comprador no podrá rastrearte.");
+      }
+    }
+  });
+</script>
 {% endblock %}

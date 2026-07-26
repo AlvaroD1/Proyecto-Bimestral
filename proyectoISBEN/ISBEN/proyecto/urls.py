@@ -46,5 +46,9 @@ urlpatterns = [
     # Descuentos por volumen
     path('descuento/agregar/<int:producto_id>/', views.agregar_descuento, name='agregar_descuento'),
     path('descuento/eliminar/<int:descuento_id>/', views.eliminar_descuento, name='eliminar_descuento'),
+
+    # API Seguimiento GPS
+    path('api/vendedor/actualizar-ubicacion/', views.actualizar_ubicacion_vendedor, name='actualizar_ubicacion_vendedor'),
+    path('api/pedido/obtener-ubicacion/<int:pedido_id>/', views.obtener_ubicacion_vendedor, name='obtener_ubicacion_vendedor'),
 ]
 

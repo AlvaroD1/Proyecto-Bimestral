@@ -2,6 +2,10 @@
 
 {% block title %}Dashboard Comprador - Conexia{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock %}
+
 {% block content %}
 <h2>🛒 Panel de Control: Comprador / Tendero</h2>
 <p class="text-muted-sm">
@@ -192,6 +196,24 @@
 {% endif %}
 
 <hr class="section-divider">
+
+<hr class="section-divider">
+
+<!-- ========== RASTREO EN VIVO ========== -->
+{% for ped in pedidos %}
+  {% if ped.estado == 'Enviado' %}
+    <div class="tracking-section" id="tracking-section-{{ ped.id }}" style="margin-bottom: 30px; background: #fff; padding: 25px; border-radius: 16px; border: 2px solid var(--info); box-shadow: 0 10px 20px -5px rgba(2, 132, 199, 0.15);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: var(--info);">📍 Rastreo en Vivo - Pedido #{{ ped.id }} ({{ ped.producto.nombre }})</h3>
+        <span class="badge" style="background-color: var(--info); color: white;">Vendedor en Camino</span>
+      </div>
+      <p style="font-size: 14px; margin-bottom: 15px; color: var(--text-muted);">
+        <strong>Cola del vendedor:</strong> Está entregando <span id="posicion-cola-{{ ped.id }}" style="font-weight: bold; color: var(--primary);">Calculando...</span>
+      </p>
+      <div id="map-rastreo-{{ ped.id }}" class="map-rastreo" data-pedido-id="{{ ped.id }}" style="height: 350px; width: 100%; border-radius: 12px; border: 1px solid var(--border-color); z-index: 1;"></div>
+    </div>
+  {% endif %}
+{% endfor %}
 
 <h3>📋 Mis Pedidos Realizados</h3>
 {% if pedidos %}
@@ -863,4 +885,72 @@
   </div>
 </div>
 
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Para cada mapa de rastreo activo
+    var mapsRastreo = document.querySelectorAll('.map-rastreo');
+    
+    // Configuración base
+    var latTienda = {{ comprador.latitud|default:"-3.99313" }};
+    var lngTienda = {{ comprador.longitud|default:"-79.20422" }};
+    var referencias = "{{ comprador.referencias_direccion|escapejs }}";
+
+    mapsRastreo.forEach(function(mapElement) {
+      var pedidoId = mapElement.getAttribute('data-pedido-id');
+      
+      var map = L.map(mapElement.id).setView([latTienda, lngTienda], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Marcador de la tienda del comprador (Rojo)
+      var tiendaIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+      });
+      L.marker([latTienda, lngTienda], {icon: tiendaIcon}).addTo(map)
+        .bindPopup("<b>Tu Tienda</b><br>" + (referencias ? referencias : "Ubicación de entrega"));
+
+      // Marcador del vendedor (Azul por defecto)
+      var vendedorMarker = null;
+
+      // Hacer polling cada 5 segundos
+      setInterval(function() {
+        fetch('/api/pedido/obtener-ubicacion/' + pedidoId + '/')
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) return;
+            
+            // Actualizar cola
+            var colaTexto = "Pedido " + data.posicion_cola + " de " + data.total_activos + " activos.";
+            document.getElementById('posicion-cola-' + pedidoId).textContent = colaTexto;
+
+            // Mostrar/alerta si acaba de salir a "en camino" (si es el primero de la cola o similar)
+            // Ya es enviado, pero si la latitud cambia o es la primera vez:
+            if (data.latitud && data.longitud) {
+              var latlng = [data.latitud, data.longitud];
+              if (!vendedorMarker) {
+                // Alerta (Solo la primera vez que lo ubicamos)
+                alert("¡El vendedor está en camino con tu pedido #" + pedidoId + "!");
+                vendedorMarker = L.marker(latlng).addTo(map).bindPopup("<b>Vendedor</b>");
+                // Ajustar zoom para ver ambos
+                var bounds = L.latLngBounds([[latTienda, lngTienda], latlng]);
+                map.fitBounds(bounds, {padding: [30, 30]});
+              } else {
+                vendedorMarker.setLatLng(latlng);
+              }
+            }
+          })
+          .catch(console.error);
+      }, 5000); // 5 segundos
+    });
+  });
+</script>
 {% endblock %}

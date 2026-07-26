@@ -2,6 +2,10 @@
 
 {% block title %}Registrar Comprador - Conexia{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endblock %}
+
 {% block content %}
 <div class="auth-container">
   <h2 class="auth-title">🛒 Registrar Nuevo Comprador</h2>
@@ -12,6 +16,14 @@
   <form action="" method="post">
     {% csrf_token %}
     {{ formulario.as_p }}
+    
+    <div style="margin-bottom: 20px;">
+      <label>📍 Ubicación de la tienda (Opcional, haz clic en el mapa)</label>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+        Haz clic en el mapa para establecer la ubicación exacta de tu tienda.
+      </p>
+      <div id="map-registro" style="height: 300px; width: 100%; border-radius: 10px; border: 1px solid var(--border-color); z-index: 1;"></div>
+    </div>
     
     <div class="auth-req-box">
       <strong class="auth-req-title">Requisitos de la contraseña:</strong>
@@ -28,4 +40,35 @@
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Inicializar mapa en una coordenada por defecto (Ecuador, Loja por ejemplo)
+    var map = L.map('map-registro').setView([-3.99313, -79.20422], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var marker;
+
+    map.on('click', function(e) {
+      if (marker) {
+        map.removeLayer(marker);
+      }
+      marker = L.marker(e.latlng).addTo(map);
+      
+      // Llenar campos ocultos
+      var latInput = document.getElementById('id_latitud');
+      var lngInput = document.getElementById('id_longitud');
+      if (latInput && lngInput) {
+        latInput.value = e.latlng.lat;
+        lngInput.value = e.latlng.lng;
+      }
+    });
+  });
+</script>
 {% endblock %}
