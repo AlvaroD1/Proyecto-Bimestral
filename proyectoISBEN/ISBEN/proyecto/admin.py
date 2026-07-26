@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion,
-    InventarioTienda, ListaReposicion, ItemReposicion, ConfiguracionFacturacion
+    InventarioTienda, ListaReposicion, ItemReposicion, ConfiguracionFacturacion,
+    DescuentoVolumen
 )
 
 class ProveedorAdmin(admin.ModelAdmin):
@@ -16,15 +17,28 @@ class CompradorAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'cedula', 'direccion')
     search_fields = ('nombre', 'cedula')
 
+# ProductoAdmin moved below to be after DescuentoVolumenInline
+
+class DescuentoVolumenInline(admin.TabularInline):
+    model = DescuentoVolumen
+    extra = 1
+
 class ProductoAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'cantidad', 'stock_minimo', 'precio', 'proveedor', 'vendedor')
     search_fields = ('nombre',)
     list_filter = ('proveedor', 'vendedor')
+    inlines = [DescuentoVolumenInline]
+
+class DescuentoVolumenAdmin(admin.ModelAdmin):
+    list_display = ('producto', 'cantidad_minima', 'porcentaje_descuento', 'descripcion')
+    list_filter = ('producto__proveedor',)
+    search_fields = ('producto__nombre',)
 
 class PedidoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'comprador', 'producto', 'cantidad', 'estado', 'fecha')
-    list_filter = ('estado', 'fecha')
+    list_display = ('id', 'comprador', 'producto', 'cantidad', 'precio_unitario', 'porcentaje_descuento', 'estado', 'fecha')
+    list_filter = ('estado', 'fecha', 'pago_completado')
     search_fields = ('comprador__nombre', 'producto__nombre')
+    readonly_fields = ('precio_unitario', 'descuento_aplicado', 'porcentaje_descuento')
 
 class PostulacionAdmin(admin.ModelAdmin):
     list_display = ('id', 'vendedor', 'producto', 'estado', 'fecha')
@@ -67,4 +81,5 @@ admin.site.register(ListaReposicion, ListaReposicionAdmin)
 admin.site.register(ItemReposicion, ItemReposicionAdmin)
 admin.site.register(ConfiguracionFacturacion, ConfiguracionFacturacionAdmin)
 admin.site.register(InventarioTienda, InventarioTiendaAdmin)
+admin.site.register(DescuentoVolumen, DescuentoVolumenAdmin)
 

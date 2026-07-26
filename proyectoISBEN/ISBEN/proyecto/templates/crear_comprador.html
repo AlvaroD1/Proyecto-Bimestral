@@ -3,9 +3,9 @@
 {% block title %}Registrar Comprador - Conexia{% endblock %}
 
 {% block content %}
-<div style="max-width: 600px; margin: 0 auto;">
-  <h2 style="margin-bottom: 10px;">🛒 Registrar Nuevo Comprador</h2>
-  <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 30px;">
+<div class="auth-container">
+  <h2 class="auth-title">🛒 Registrar Nuevo Comprador</h2>
+  <p class="auth-subtitle">
     Completa los siguientes campos para registrar un nuevo perfil de Comprador / Tendero en la plataforma.
   </p>
 
@@ -13,9 +13,9 @@
     {% csrf_token %}
     {{ formulario.as_p }}
     
-    <div style="background-color: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 10px; margin: 15px 0;">
-      <strong style="font-size: 13px; color: var(--primary-dark); display: block; margin-bottom: 5px;">Requisitos de la contraseña:</strong>
-      <ul style="font-size: 12px; color: var(--text-muted); margin: 0; padding-left: 20px;">
+    <div class="auth-req-box">
+      <strong class="auth-req-title">Requisitos de la contraseña:</strong>
+      <ul class="auth-req-list">
         <li>Debe contener al menos una letra <strong>mayúscula</strong>.</li>
         <li>Debe contener al menos una letra <strong>minúscula</strong>.</li>
         <li>Debe contener al menos un <strong>número</strong>.</li>
@@ -24,7 +24,7 @@
 
     <div class="form-actions">
       <button type="submit" class="btn">Registrar Comprador</button>
-      <a href="{% url 'index' %}" class="btn btn-secondary">Cancelar</a>
+      <a href="{% url 'index' %}" class="btn btn-secondary" style="text-align: center; text-decoration: none;">Cancelar</a>
     </div>
   </form>
 </div>

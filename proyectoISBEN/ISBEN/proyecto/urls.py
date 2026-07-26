@@ -42,5 +42,9 @@ urlpatterns = [
     path('reposicion/eliminar/<int:item_id>/', views.eliminar_item_reposicion, name='eliminar_item_reposicion'),
     path('reposicion/enviar/<int:lista_id>/', views.enviar_lista_reposicion, name='enviar_lista_reposicion'),
     path('inventario/actualizar/<int:inventario_id>/', views.actualizar_inventario, name='actualizar_inventario'),
+
+    # Descuentos por volumen
+    path('descuento/agregar/<int:producto_id>/', views.agregar_descuento, name='agregar_descuento'),
+    path('descuento/eliminar/<int:descuento_id>/', views.eliminar_descuento, name='eliminar_descuento'),
 ]
 

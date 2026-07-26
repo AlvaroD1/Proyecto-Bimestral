@@ -3,278 +3,8 @@
 {% block title %}Dashboard Comprador - Conexia{% endblock %}
 
 {% block content %}
-<style>
-  /* Payment Modal Styles */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(26, 14, 8, 0.6);
-    backdrop-filter: blur(6px);
-    z-index: 9999;
-    justify-content: flex-start;
-    align-items: center;
-    flex-direction: column;
-    overflow-y: auto;
-    padding: 40px 20px;
-    animation: fadeIn 0.3s ease;
-  }
-  .modal-overlay.active { display: flex; }
-  .modal-content {
-    background: #fff;
-    border-radius: 24px;
-    padding: 0;
-    width: 90%;
-    max-width: 520px;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    overflow: visible;
-    flex-shrink: 0;
-    margin: auto;
-  }
-  .modal-header {
-    background: linear-gradient(135deg, var(--primary-dark), #1a0e08);
-    color: #fff;
-    padding: 24px 30px;
-    position: relative;
-  }
-  .modal-header h3 {
-    color: #fff; margin: 0; font-size: 20px;
-  }
-  .modal-header p {
-    color: #ffcba4; margin: 6px 0 0; font-size: 13px;
-  }
-  .modal-close {
-    position: absolute; top: 16px; right: 20px;
-    background: rgba(255,255,255,0.15); border: none; color: #fff;
-    width: 32px; height: 32px; border-radius: 8px;
-    cursor: pointer; font-size: 18px;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.2s;
-  }
-  .modal-close:hover { background: rgba(255,255,255,0.3); }
-  .modal-body { padding: 30px; }
-  
-  /* Order Summary */
-  .order-summary {
-    background: linear-gradient(135deg, #fefaf7, #fff8f0);
-    border: 1px solid var(--border-color);
-    padding: 18px; border-radius: 14px;
-    margin-bottom: 24px;
-  }
-  .order-summary-row {
-    display: flex; justify-content: space-between;
-    padding: 6px 0; font-size: 14px; color: var(--text-muted);
-  }
-  .order-summary-row.total {
-    border-top: 2px solid var(--border-color);
-    margin-top: 10px; padding-top: 12px;
-    font-weight: 800; font-size: 18px; color: var(--primary-dark);
-  }
-
-  /* Payment Methods */
-  .payment-methods {
-    display: flex; gap: 10px; margin-bottom: 20px;
-  }
-  .payment-method {
-    flex: 1; padding: 14px 10px;
-    border: 2px solid var(--border-color);
-    border-radius: 12px; cursor: pointer;
-    text-align: center; transition: all 0.2s;
-    background: #fefaf7; font-size: 12px; font-weight: 600;
-    color: var(--text-muted);
-  }
-  .payment-method:hover { border-color: var(--primary-light); }
-  .payment-method.selected {
-    border-color: var(--primary);
-    background: #fff3eb;
-    color: var(--primary-dark);
-    box-shadow: 0 0 0 3px rgba(251, 67, 24, 0.1);
-  }
-  .payment-method-icon { font-size: 24px; display: block; margin-bottom: 6px; }
-
-  /* Card Form */
-  .card-visual {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    border-radius: 16px; padding: 24px;
-    color: #fff; margin-bottom: 20px;
-    position: relative; overflow: hidden;
-    min-height: 140px;
-  }
-  .card-visual::before {
-    content: ''; position: absolute;
-    top: -30%; right: -15%;
-    width: 200px; height: 200px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 50%;
-  }
-  .card-visual::after {
-    content: ''; position: absolute;
-    bottom: -40%; left: -10%;
-    width: 160px; height: 160px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 50%;
-  }
-  .card-number {
-    font-family: 'Courier New', monospace;
-    font-size: 20px; letter-spacing: 3px;
-    margin-top: 30px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  }
-  .card-details {
-    display: flex; justify-content: space-between;
-    margin-top: 20px; font-size: 11px;
-    text-transform: uppercase; letter-spacing: 1px;
-  }
-  .card-chip {
-    width: 40px; height: 30px;
-    background: linear-gradient(135deg, #e6c944, #c4a332);
-    border-radius: 6px; position: relative; z-index: 1;
-  }
-
-  .card-form-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 14px; margin-bottom: 20px;
-  }
-  .card-form-grid .full-width { grid-column: 1 / -1; }
-  .form-group label {
-    font-size: 12px; font-weight: 600;
-    color: var(--text-muted); margin-bottom: 4px;
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .form-group input {
-    width: 100%; padding: 10px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 10px; font-size: 14px;
-    background: #fefaf7; box-sizing: border-box;
-    transition: border-color 0.2s;
-  }
-  .form-group input:focus {
-    border-color: var(--primary-light);
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(251, 67, 24, 0.1);
-  }
-
-  /* Payment Percentage */
-  .payment-percent-options {
-    display: flex; gap: 12px; margin-bottom: 20px;
-  }
-  .percent-option {
-    flex: 1; padding: 16px;
-    border: 2px solid var(--border-color);
-    border-radius: 14px; cursor: pointer;
-    text-align: center; transition: all 0.2s;
-    background: #fefaf7;
-  }
-  .percent-option:hover { border-color: var(--accent); }
-  .percent-option.selected {
-    border-color: var(--accent);
-    background: #fff8e6;
-    box-shadow: 0 0 0 3px rgba(255, 194, 47, 0.15);
-  }
-  .percent-option .percent-value {
-    font-size: 28px; font-weight: 800;
-    color: var(--primary-dark);
-  }
-  .percent-option .percent-label {
-    font-size: 12px; color: var(--text-muted);
-    margin-top: 4px;
-  }
-  .percent-option .percent-amount {
-    font-size: 16px; font-weight: 700;
-    color: var(--success-dark); margin-top: 8px;
-  }
-
-  .payment-summary-final {
-    background: #f0fdf4; border: 1px solid #a7f3d0;
-    padding: 16px; border-radius: 12px;
-    text-align: center; margin-bottom: 20px;
-  }
-  .payment-summary-final .pay-now-label {
-    font-size: 12px; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 1px;
-  }
-  .payment-summary-final .pay-now-amount {
-    font-size: 28px; font-weight: 800;
-    color: var(--success-dark); margin-top: 4px;
-  }
-  .payment-summary-final .pay-pending {
-    font-size: 13px; color: #b45309; margin-top: 6px;
-  }
-
-  /* Processing animation */
-  .processing-overlay {
-    display: none; position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.95);
-    z-index: 10; justify-content: center; align-items: center;
-    flex-direction: column; gap: 16px;
-    border-radius: 24px;
-  }
-  .processing-overlay.active { display: flex; }
-  .spinner {
-    width: 48px; height: 48px;
-    border: 4px solid var(--border-color);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .success-check {
-    display: none; width: 60px; height: 60px;
-    background: var(--success); border-radius: 50%;
-    color: #fff; font-size: 28px;
-    justify-content: center; align-items: center;
-    animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .success-check.active { display: flex; }
-
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes scaleIn {
-    from { transform: scale(0); } to { transform: scale(1); }
-  }
-
-  .company-card.active {
-    border-color: var(--primary) !important;
-    background: #fff3eb !important;
-    box-shadow: 0 8px 16px -2px rgba(251, 67, 24, 0.15) !important;
-    transform: translateY(-2px);
-  }
-  .company-card:hover {
-    border-color: var(--primary-light) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.05);
-  }
-
-  @media (max-width: 768px) {
-    .modal-overlay {
-      padding: 10px;
-    }
-    .modal-body {
-      padding: 15px;
-    }
-    .card-visual {
-      padding: 15px;
-      min-height: 120px;
-    }
-    .card-number {
-      font-size: 16px;
-      margin-top: 15px;
-    }
-    .percent-option {
-      padding: 10px;
-    }
-    .percent-option .percent-value {
-      font-size: 20px;
-    }
-  }
-</style>
-
 <h2>🛒 Panel de Control: Comprador / Tendero</h2>
-<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">
+<p class="text-muted-sm">
   Bienvenido, <strong>{{ comprador.nombre }}</strong>. Explora el catálogo de productos disponibles en tiempo real y gestiona tus pedidos.
 </p>
 
@@ -290,43 +20,43 @@
   </div>
   <div class="metric-card">
     <span class="metric-title">Cédula</span>
-    <span class="metric-value" style="font-size: 20px; font-weight: 700; margin-top: 5px;">{{ comprador.cedula }}</span>
+    <span class="metric-value metric-value-sm">{{ comprador.cedula }}</span>
   </div>
   <div class="metric-card">
     <span class="metric-title">Dirección de Despacho</span>
-    <span class="metric-value" style="font-size: 14px; color: var(--text-muted); font-weight: 500; margin-top: 5px;">{{ comprador.direccion }}</span>
+    <span class="metric-value metric-value-location">{{ comprador.direccion }}</span>
   </div>
 </div>
 
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
+<hr class="section-divider">
 
 <!-- ========== INVENTARIO DE MI TIENDA ========== -->
-<h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+<h3 style="display: flex; align-items: center; gap: 8px;">
   <span style="font-size: 24px;">🏪</span> Inventario de mi Tienda
 </h3>
 {% if inventario %}
   <div class="table-responsive" style="margin-bottom: 30px; background: #ffffff;">
-    <table style="margin: 0; width: 100%;">
+    <table>
       <thead>
         <tr>
           <th>Producto</th>
           <th>Stock Actual</th>
           <th>Stock Mínimo</th>
           <th>Proveedor</th>
-          <th style="text-align: center; min-width: 250px;">Actualizar Stock</th>
+          <th class="th-actions-stock">Actualizar Stock</th>
         </tr>
       </thead>
       <tbody>
         {% for inv in inventario %}
-          <tr {% if inv.stock_bajo %}style="background: #fff5f5;"{% endif %}>
+          <tr {% if inv.stock_bajo %}class="stock-bajo-row"{% endif %}>
             <td>
               <strong>{{ inv.producto.nombre }}</strong>
               {% if inv.stock_bajo %}
-                <br><span style="font-size: 11px; color: #dc2626; font-weight: 700;">⚠️ STOCK BAJO</span>
+                <br><span class="stock-bajo-label">⚠️ STOCK BAJO</span>
               {% endif %}
             </td>
             <td>
-              <span style="font-weight: 700; color: {% if inv.stock_bajo %}#dc2626{% else %}var(--text-main){% endif %}; font-size: 18px;">
+              <span class="{% if inv.stock_bajo %}stock-value-danger{% else %}stock-value-normal{% endif %}">
                 {{ inv.cantidad }}
               </span>
             </td>
@@ -335,17 +65,17 @@
             </td>
             <td>
               {% if inv.producto.proveedor %}
-                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ inv.producto.proveedor.nombre }}</span>
+                <span class="badge badge-vendedor">{{ inv.producto.proveedor.nombre }}</span>
               {% else %}
                 <span class="badge" style="background-color: #f3f4f6; color: #6b7280; border-color: #d1d5db;">Sin proveedor</span>
               {% endif %}
             </td>
             <td>
-              <form action="{% url 'actualizar_inventario' inv.id %}" method="post" style="margin: 0; display: flex; gap: 6px; align-items: center; justify-content: center;">
+              <form action="{% url 'actualizar_inventario' inv.id %}" method="post" class="form-inline-flex">
                 {% csrf_token %}
-                <input type="number" name="cantidad" value="{{ inv.cantidad }}" min="0" style="width: 70px; text-align: center; padding: 6px 8px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; font-weight: 600;" title="Stock Actual">
-                <input type="number" name="stock_minimo" value="{{ inv.stock_minimo }}" min="0" style="width: 70px; text-align: center; padding: 6px 8px; border: 1.5px dashed #cbd5e1; border-radius: 8px; font-size: 12px; color: var(--text-muted);" title="Stock Mínimo (Alerta)">
-                <button type="submit" class="btn btn-sm" style="background: #e2e8f0; color: #475569; border: none; white-space: nowrap;">
+                <input type="number" name="cantidad" value="{{ inv.cantidad }}" min="0" class="inventory-input" title="Stock Actual">
+                <input type="number" name="stock_minimo" value="{{ inv.stock_minimo }}" min="0" class="inventory-input-min" title="Stock Mínimo (Alerta)">
+                <button type="submit" class="btn btn-sm btn-save-gray">
                   💾 Guardar
                 </button>
               </form>
@@ -356,31 +86,31 @@
     </table>
   </div>
 {% else %}
-  <p style="color: var(--text-muted); font-style: italic; margin-bottom: 30px;">No tienes productos en tu inventario aún. El inventario se actualizará automáticamente cuando recibas pedidos.</p>
+  <p class="text-muted-italic" style="margin-bottom: 30px;">No tienes productos en tu inventario aún. El inventario se actualizará automáticamente cuando recibas pedidos.</p>
 {% endif %}
 
 <!-- ========== ALERTAS DE STOCK BAJO ========== -->
 {% if inventario_stock_bajo %}
-  <div style="background: linear-gradient(135deg, #fef2f2, #fff5f5); border: 1.5px solid #fca5a5; border-radius: 16px; padding: 25px; margin-bottom: 30px; animation: fadeInUp 0.3s ease-out;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-      <h3 style="margin: 0; color: #991b1b; display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 28px; background: #fee2e2; padding: 8px; border-radius: 12px;">🚨</span>
+  <div class="stock-alert-section">
+    <div class="stock-alert-header">
+      <h3>
+        <span class="stock-alert-icon">🚨</span>
         Alerta de Stock Bajo
       </h3>
-      <span style="background: #fee2e2; color: #991b1b; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1px solid #fca5a5;">
+      <span class="stock-alert-count">
         {{ inventario_stock_bajo|length }} producto{{ inventario_stock_bajo|length|pluralize:"s" }} en riesgo
       </span>
     </div>
-    <p style="color: #7f1d1d; font-size: 13px; margin-bottom: 20px;">
+    <p class="stock-alert-text">
       Los siguientes productos tienen stock igual o por debajo de tu umbral mínimo configurado. Agrega los que necesites a tu <strong>lista de reposición</strong> para solicitar más unidades.
     </p>
     <div class="table-responsive" style="background: #ffffff; border: 1.5px solid #fecaca;">
-      <table style="margin: 0; width: 100%;">
+      <table>
         <thead>
           <tr style="background: #fef2f2;">
             <th>Producto</th>
             <th>Stock Actual</th>
-            <th style="text-align: center; min-width: 200px;">Agregar a Lista de Reposición</th>
+            <th class="th-actions-repo">Agregar a Lista de Reposición</th>
           </tr>
         </thead>
         <tbody>
@@ -390,16 +120,16 @@
                 <strong>{{ inv.producto.nombre }}</strong>
               </td>
               <td>
-                <span style="font-weight: 700; color: #dc2626; font-size: 18px;">
+                <span class="stock-value-danger">
                   {{ inv.cantidad }}
                 </span>
-                <span style="color: #991b1b; font-size: 12px;"> (Min: {{ inv.stock_minimo }})</span>
+                <span class="stock-min-label"> (Min: {{ inv.stock_minimo }})</span>
               </td>
               <td>
-                <form action="{% url 'agregar_a_reposicion' inv.producto.id %}" method="post" style="margin: 0; display: flex; gap: 6px; align-items: center; justify-content: center;">
+                <form action="{% url 'agregar_a_reposicion' inv.producto.id %}" method="post" class="form-inline-flex">
                   {% csrf_token %}
-                  <input type="number" name="cantidad" value="10" min="1" style="width: 70px; text-align: center; padding: 6px 8px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 14px; font-weight: 600;">
-                  <button type="submit" class="btn btn-sm" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; white-space: nowrap;">
+                  <input type="number" name="cantidad" value="10" min="1" class="reposicion-qty-input">
+                  <button type="submit" class="btn btn-sm btn-orange-gradient">
                     📋 Agregar a Lista
                   </button>
                 </form>
@@ -414,29 +144,29 @@
 
 <!-- ========== LISTA DE REPOSICIÓN ACTIVA (RESUMEN) ========== -->
 {% if lista_reposicion_activa %}
-  <div style="background: linear-gradient(135deg, #eff6ff, #f0f9ff); border: 1.5px solid #93c5fd; border-radius: 16px; padding: 25px; margin-bottom: 30px; animation: fadeInUp 0.4s ease-out;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-      <h3 style="margin: 0; color: #1e40af; display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 28px; background: #dbeafe; padding: 8px; border-radius: 12px;">📋</span>
+  <div class="reposicion-section">
+    <div class="reposicion-header">
+      <h3>
+        <span class="reposicion-icon">📋</span>
         Lista de Reposición (Borrador)
       </h3>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <a href="{% url 'ver_lista_reposicion' %}" class="btn btn-sm" style="background: #3b82f6; color: white; border: none;">📄 Ver Lista Completa</a>
-        <form action="{% url 'enviar_lista_reposicion' lista_reposicion_activa.id %}" method="post" style="margin: 0;">
+      <div class="reposicion-actions">
+        <a href="{% url 'ver_lista_reposicion' %}" class="btn btn-sm btn-blue">📄 Ver Lista Completa</a>
+        <form action="{% url 'enviar_lista_reposicion' lista_reposicion_activa.id %}" method="post" class="form-inline">
           {% csrf_token %}
-          <button type="submit" class="btn btn-sm" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none;" onclick="return confirm('¿Enviar esta lista de reposición a los proveedores?');">
+          <button type="submit" class="btn btn-sm btn-green-gradient" onclick="return confirm('¿Enviar esta lista de reposición a los proveedores?');">
             📨 Enviar a Proveedores
           </button>
         </form>
       </div>
     </div>
     <div class="table-responsive" style="background: #ffffff; border: 1.5px solid #bfdbfe;">
-      <table style="margin: 0; width: 100%;">
+      <table>
         <thead>
           <tr style="background: #eff6ff;">
             <th>Producto</th>
             <th>Cantidad Solicitada</th>
-            <th style="text-align: center;">Quitar</th>
+            <th class="text-center">Quitar</th>
           </tr>
         </thead>
         <tbody>
@@ -444,10 +174,10 @@
             <tr>
               <td><strong>{{ item.producto.nombre }}</strong></td>
               <td>
-                <span style="font-weight: 700; color: #1e40af; font-size: 16px;">{{ item.cantidad_solicitada }}</span>
-                <span style="color: var(--text-muted); font-size: 12px;"> uds.</span>
+                <span class="reposicion-qty">{{ item.cantidad_solicitada }}</span>
+                <span class="reposicion-uds"> uds.</span>
               </td>
-              <td style="text-align: center;">
+              <td class="text-center">
                 <a href="{% url 'eliminar_item_reposicion' item.id %}" class="btn btn-danger btn-sm" style="padding: 4px 10px;" onclick="return confirm('¿Eliminar este producto de la lista?');">✖</a>
               </td>
             </tr>
@@ -455,15 +185,15 @@
         </tbody>
       </table>
     </div>
-    <p style="margin: 12px 0 0 0; font-size: 12px; color: #6b7280; text-align: right;">
+    <p class="reposicion-total-text">
       {{ lista_reposicion_activa.obtener_total_items }} producto{{ lista_reposicion_activa.obtener_total_items|pluralize:"s" }} en la lista
     </p>
   </div>
 {% endif %}
 
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
+<hr class="section-divider">
 
-<h3 style="margin-bottom: 20px;">📋 Mis Pedidos Realizados</h3>
+<h3>📋 Mis Pedidos Realizados</h3>
 {% if pedidos %}
   <div class="table-responsive">
     <table>
@@ -477,16 +207,21 @@
           <th>Código Entrega</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: center; min-width: 150px;">Acciones</th>
+          <th class="th-actions-xl">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for ped in pedidos %}
           <tr>
-            <td style="font-weight: bold; color: var(--text-muted);">#{{ ped.id }}</td>
+            <td class="text-bold-muted">#{{ ped.id }}</td>
             <td><strong>{{ ped.producto.nombre }}</strong></td>
             <td>{{ ped.cantidad }}</td>
-            <td style="font-weight: 600; color: var(--success-dark);">${{ ped.obtener_total }}</td>
+            <td class="text-bold-success">
+              ${{ ped.obtener_total }}
+              {% if ped.porcentaje_descuento > 0 %}
+                <br><span class="descuento-tag">🏷️ -{{ ped.porcentaje_descuento }}%</span>
+              {% endif %}
+            </td>
             <td>
               {% if ped.pago_completado %}
                 <span class="pago-status pago-completo">✅ 100%</span>
@@ -498,40 +233,40 @@
               {% if ped.codigo_entrega %}
                 <span class="codigo-entrega">{{ ped.codigo_entrega }}</span>
               {% else %}
-                <span style="color: var(--text-muted); font-style: italic;">—</span>
+                <span class="text-muted-italic">—</span>
               {% endif %}
             </td>
             <td>{{ ped.fecha|date:"d/m/Y H:i" }}</td>
             <td>
               <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
               {% if ped.entrega_confirmada %}
-                <br><span style="font-size: 11px; color: var(--success-dark);">🔒 Entrega verificada</span>
+                <br><span class="text-small-verified">🔒 Entrega verificada</span>
               {% endif %}
             </td>
             <td>
-              <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+              <div class="action-col">
                 {% if ped.estado != 'Recibido' %}
                   {% if ped.entrega_confirmada %}
-                    <form action="{% url 'recibir_pedido' ped.id %}" method="post" style="margin:0; width: 100%;">
+                    <form action="{% url 'recibir_pedido' ped.id %}" method="post" class="form-inline">
                       {% csrf_token %}
-                      <button type="submit" class="btn btn-success btn-sm" style="width: 100%;">Confirmar Recepción</button>
+                      <button type="submit" class="btn btn-success btn-sm btn-full">Confirmar Recepción</button>
                     </form>
                   {% else %}
-                    <button class="btn btn-secondary btn-sm" style="width: 100%; cursor: not-allowed; opacity: 0.65;" disabled title="Debes esperar a que el vendedor verifique tu código de entrega">
+                    <button class="btn btn-secondary btn-sm btn-full" style="cursor: not-allowed; opacity: 0.65;" disabled title="Debes esperar a que el vendedor verifique tu código de entrega">
                       ⏳ Espera Verificación de Código
                     </button>
                   {% endif %}
                 {% else %}
-                  <span style="color: var(--success-dark); font-weight: bold; font-size: 13px; text-align: center; display: block;">✔ Entregado</span>
+                  <span class="text-bold-success text-center" style="font-size: 13px; display: block;">✔ Entregado</span>
                 {% endif %}
                 {% if not ped.pago_completado %}
                   {% if ped.entrega_confirmada %}
-                    <form action="{% url 'completar_pago' ped.id %}" method="post" style="margin:0; width: 100%;">
+                    <form action="{% url 'completar_pago' ped.id %}" method="post" class="form-inline">
                       {% csrf_token %}
-                      <button type="submit" class="btn btn-accent btn-sm" style="width: 100%;">Pagar 50% Restante</button>
+                      <button type="submit" class="btn btn-accent btn-sm btn-full">Pagar 50% Restante</button>
                     </form>
                   {% else %}
-                    <button class="btn btn-secondary btn-sm" style="width: 100%; cursor: not-allowed; opacity: 0.65;" disabled title="Debes esperar a que el vendedor verifique tu código antes de completar el pago">
+                    <button class="btn btn-secondary btn-sm btn-full" style="cursor: not-allowed; opacity: 0.65;" disabled title="Debes esperar a que el vendedor verifique tu código antes de completar el pago">
                       ⏳ Espera Código para Pagar
                     </button>
                   {% endif %}
@@ -544,53 +279,53 @@
     </table>
   </div>
 {% else %}
-  <p style="color: var(--text-muted); font-style: italic;">Aún no has realizado pedidos.</p>
+  <p class="text-muted-italic">Aún no has realizado pedidos.</p>
 {% endif %}
 
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+<hr class="section-divider-lg">
 
-<h3 style="margin-bottom: 10px;">🏢 Directorio de Empresas Proveedoras</h3>
-<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+<h3>🏢 Directorio de Empresas Proveedoras</h3>
+<p class="text-muted-sm">
   Selecciona una empresa para visualizar y comprar sus productos directamente:
 </p>
 
 <!-- Company Selector Cards -->
-<div class="company-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px;">
+<div class="company-grid">
   {% for prov in proveedores %}
-    <div class="company-card" id="card-prov-{{ prov.id }}" onclick="verProductosProveedor('{{ prov.id }}')" style="background: #ffffff; border: 2px solid var(--border-color); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 32px; background: #fff3eb; padding: 10px; border-radius: 12px;">🏢</span>
+    <div class="company-card" id="card-prov-{{ prov.id }}" onclick="verProductosProveedor('{{ prov.id }}')">
+      <div class="company-card-header">
+        <span class="company-card-icon">🏢</span>
         <div>
-          <h4 style="margin: 0; color: var(--primary-dark); font-size: 16px; font-weight: 700;">{{ prov.nombre }}</h4>
-          <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">RUC: {{ prov.ruc }}</span>
+          <h4 class="company-card-name">{{ prov.nombre }}</h4>
+          <span class="company-card-ruc">RUC: {{ prov.ruc }}</span>
         </div>
       </div>
-      <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+      <div class="company-card-address">
         <span>📍</span> {{ prov.direccion }}
       </div>
-      <div style="margin-top: auto; padding-top: 10px; border-top: 1px solid #fdf6f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
-        <span style="font-weight: 600; color: var(--primary);">{{ prov.productos.count }} productos</span>
+      <div class="company-card-footer">
+        <span class="company-card-count">{{ prov.productos.count }} productos</span>
         <span class="btn btn-accent btn-sm" style="padding: 4px 8px; font-size: 11px;">Ver catálogo</span>
       </div>
     </div>
   {% empty %}
-    <p style="color: var(--text-muted); font-style: italic;">No hay empresas proveedoras registradas con productos en este momento.</p>
+    <p class="text-muted-italic">No hay empresas proveedoras registradas con productos en este momento.</p>
   {% endfor %}
 
   {% if productos_sin_proveedor %}
-    <div class="company-card" id="card-prov-other" onclick="verProductosProveedor('other')" style="background: #ffffff; border: 2px solid var(--border-color); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 32px; background: #f3f4f6; padding: 10px; border-radius: 12px;">📦</span>
+    <div class="company-card" id="card-prov-other" onclick="verProductosProveedor('other')">
+      <div class="company-card-header">
+        <span class="company-card-icon-other">📦</span>
         <div>
-          <h4 style="margin: 0; color: var(--text-main); font-size: 16px; font-weight: 700;">Otros Productos</h4>
-          <span style="font-size: 11px; color: var(--text-muted);">Sin proveedor asignado</span>
+          <h4 class="company-card-name" style="color: var(--text-main);">Otros Productos</h4>
+          <span class="company-card-ruc">Sin proveedor asignado</span>
         </div>
       </div>
-      <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
+      <div class="company-card-address">
         Productos variados de la plataforma.
       </div>
-      <div style="margin-top: auto; padding-top: 10px; border-top: 1px solid #fdf6f0; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
-        <span style="font-weight: 600; color: var(--text-muted);">{{ productos_sin_proveedor.count }} productos</span>
+      <div class="company-card-footer">
+        <span class="company-card-count-muted">{{ productos_sin_proveedor.count }} productos</span>
         <span class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;">Ver catálogo</span>
       </div>
     </div>
@@ -600,11 +335,11 @@
 <!-- Product Lists grouped by Company -->
 <div id="catalogos-proveedores" style="margin-top: 20px;">
   {% for prov in proveedores %}
-    <div class="catalogo-proveedor-container" id="catalogo-prov-{{ prov.id }}" style="display: none; animation: fadeIn 0.3s ease;">
-      <div style="background: #fff3eb; border-left: 5px solid var(--primary); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <div class="catalogo-proveedor-container catalogo-anim" id="catalogo-prov-{{ prov.id }}" style="display: none;">
+      <div class="catalog-header">
         <div>
-          <h3 style="margin: 0; color: var(--primary-dark);">🛍️ Catálogo de {{ prov.nombre }}</h3>
-          <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted);">Dirección: {{ prov.direccion }} | RUC: {{ prov.ruc }}</p>
+          <h3>🛍️ Catálogo de {{ prov.nombre }}</h3>
+          <p class="catalog-subtitle">Dirección: {{ prov.direccion }} | RUC: {{ prov.ruc }}</p>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="ocultarCatalogos()">✖ Cerrar Catálogo</button>
       </div>
@@ -617,7 +352,8 @@
               <th>Descripción</th>
               <th>Stock Real</th>
               <th>Precio ($)</th>
-              <th style="text-align: center; min-width: 150px;">Acciones</th>
+              <th>Descuentos</th>
+              <th class="th-actions-xl">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -627,20 +363,27 @@
                 <td>{{ prod.descripcion }}</td>
                 <td>
                   {% if prod.cantidad > 0 %}
-                    <span class="badge" style="background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; font-weight: bold;">{{ prod.cantidad }} unidades</span>
+                    <span class="badge badge-stock-ok">{{ prod.cantidad }} unidades</span>
                   {% else %}
-                    <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: bold;">Agotado</span>
+                    <span class="badge badge-agotado">Agotado</span>
                   {% endif %}
                 </td>
-                <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
+                <td class="text-bold-primary">${{ prod.precio }}</td>
                 <td>
-                  <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                  {% for desc in prod.obtener_descuentos %}
+                    <div class="descuento-tag">🏷️ {{ desc.porcentaje_descuento }}% (≥{{ desc.cantidad_minima }})</div>
+                  {% empty %}
+                    <span class="text-muted-italic" style="font-size: 11px;">—</span>
+                  {% endfor %}
+                </td>
+                <td>
+                  <div class="action-col">
                     {% if prod.cantidad > 0 %}
-                      <button type="button" class="btn btn-sm" style="width: 100%;" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
+                      <button type="button" class="btn btn-sm btn-full" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
                         💳 Realizar Pedido
                       </button>
                     {% else %}
-                      <button class="btn btn-secondary btn-sm" style="width: 100%;" disabled>Sin Stock</button>
+                      <button class="btn btn-secondary btn-sm btn-full" disabled>Sin Stock</button>
                     {% endif %}
                   </div>
                 </td>
@@ -653,11 +396,11 @@
   {% endfor %}
 
   {% if productos_sin_proveedor %}
-    <div class="catalogo-proveedor-container" id="catalogo-prov-other" style="display: none; animation: fadeIn 0.3s ease;">
-      <div style="background: #f3f4f6; border-left: 5px solid #6b7280; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <div class="catalogo-proveedor-container catalogo-anim" id="catalogo-prov-other" style="display: none;">
+      <div class="catalog-header-other">
         <div>
-          <h3 style="margin: 0; color: #374151;">🛍️ Otros Productos</h3>
-          <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--text-muted);">Productos sin empresa proveedora asignada</p>
+          <h3>🛍️ Otros Productos</h3>
+          <p class="catalog-subtitle">Productos sin empresa proveedora asignada</p>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="ocultarCatalogos()">✖ Cerrar Catálogo</button>
       </div>
@@ -670,7 +413,8 @@
               <th>Descripción</th>
               <th>Stock Real</th>
               <th>Precio ($)</th>
-              <th style="text-align: center; min-width: 150px;">Acciones</th>
+              <th>Descuentos</th>
+              <th class="th-actions-xl">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -680,20 +424,27 @@
                 <td>{{ prod.descripcion }}</td>
                 <td>
                   {% if prod.cantidad > 0 %}
-                    <span class="badge" style="background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; font-weight: bold;">{{ prod.cantidad }} unidades</span>
+                    <span class="badge badge-stock-ok">{{ prod.cantidad }} unidades</span>
                   {% else %}
-                    <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: bold;">Agotado</span>
+                    <span class="badge badge-agotado">Agotado</span>
                   {% endif %}
                 </td>
-                <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
+                <td class="text-bold-primary">${{ prod.precio }}</td>
                 <td>
-                  <div style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: center; width: 100%;">
+                  {% for desc in prod.obtener_descuentos %}
+                    <div class="descuento-tag">🏷️ {{ desc.porcentaje_descuento }}% (≥{{ desc.cantidad_minima }})</div>
+                  {% empty %}
+                    <span class="text-muted-italic" style="font-size: 11px;">—</span>
+                  {% endfor %}
+                </td>
+                <td>
+                  <div class="action-col">
                     {% if prod.cantidad > 0 %}
-                      <button type="button" class="btn btn-sm" style="width: 100%;" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
+                      <button type="button" class="btn btn-sm btn-full" onclick="abrirPasarela('{{ prod.nombre }}', '{{ prod.precio }}', {{ prod.cantidad }}, {{ prod.id }})">
                         💳 Realizar Pedido
                       </button>
                     {% else %}
-                      <button class="btn btn-secondary btn-sm" style="width: 100%;" disabled>Sin Stock</button>
+                      <button class="btn btn-secondary btn-sm btn-full" disabled>Sin Stock</button>
                     {% endif %}
                   </div>
                 </td>
@@ -708,7 +459,7 @@
 
 <!-- ========== PASARELA DE PAGOS MODAL ========== -->
 <div class="modal-overlay" id="paymentModal">
-  <div class="modal-content" style="position: relative;">
+  <div class="modal-content">
     <!-- Processing Overlay -->
     <div class="processing-overlay" id="processingOverlay">
       <div class="spinner" id="paySpinner"></div>
@@ -735,6 +486,10 @@
         <div class="order-summary-row">
           <span>Cantidad:</span>
           <span id="sumCantidad">—</span>
+        </div>
+        <div class="order-summary-row discount" id="sumDescuentoRow" style="display: none;">
+          <span>🏷️ Descuento (<span id="sumDescuentoPct">0</span>%):</span>
+          <span id="sumDescuento">-$0.00</span>
         </div>
         <div class="order-summary-row total">
           <span>Total:</span>
@@ -841,26 +596,21 @@
 </div>
 
 <script>
+  // Descuentos por producto (pasados desde Django)
+  var descuentosProducto = {{ descuentos_json|safe }};
+
   function verProductosProveedor(provId) {
-    // Hide all containers
     document.querySelectorAll('.catalogo-proveedor-container').forEach(el => {
       el.style.display = 'none';
     });
-    
-    // Deactivate all cards
     document.querySelectorAll('.company-card').forEach(el => {
       el.classList.remove('active');
     });
-    
-    // Show target container
     const container = document.getElementById('catalogo-prov-' + provId);
     if (container) {
       container.style.display = 'block';
-      // Scroll smoothly to container
       container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-    
-    // Activate selected card
     const card = document.getElementById('card-prov-' + provId);
     if (card) {
       card.classList.add('active');
@@ -879,6 +629,18 @@
   let currentProductId = null;
   let currentPrecio = 0;
   let currentMaxCantidad = 1;
+
+  function obtenerDescuento(productoId, cantidad) {
+    var descuentos = descuentosProducto[productoId];
+    if (!descuentos) return 0;
+    var mejorDescuento = 0;
+    for (var i = 0; i < descuentos.length; i++) {
+      if (cantidad >= descuentos[i].cantidad_minima && descuentos[i].porcentaje_descuento > mejorDescuento) {
+        mejorDescuento = descuentos[i].porcentaje_descuento;
+      }
+    }
+    return mejorDescuento;
+  }
 
   function abrirPasarela(nombre, precio, maxCantidad, productoId) {
     currentProductId = productoId;
@@ -951,8 +713,14 @@
 
   function actualizarResumen() {
     const cantidad = parseInt(document.getElementById('modalCantidad').value) || 1;
-    const total = currentPrecio * cantidad;
+    const subtotal = currentPrecio * cantidad;
     const porcentaje = parseInt(document.getElementById('formPorcentaje').value);
+    
+    // Calculate discount
+    const pctDescuento = obtenerDescuento(currentProductId, cantidad);
+    const montoDescuento = subtotal * (pctDescuento / 100);
+    const total = subtotal - montoDescuento;
+    
     const payNow = total * (porcentaje / 100);
     const pending = total - payNow;
     
@@ -961,6 +729,16 @@
     document.getElementById('amount100').textContent = '$' + total.toFixed(2);
     document.getElementById('amount50').textContent = '$' + (total * 0.5).toFixed(2);
     document.getElementById('payNowAmount').textContent = '$' + payNow.toFixed(2);
+    
+    // Show/hide discount row
+    var descRow = document.getElementById('sumDescuentoRow');
+    if (pctDescuento > 0) {
+      descRow.style.display = 'flex';
+      document.getElementById('sumDescuentoPct').textContent = pctDescuento;
+      document.getElementById('sumDescuento').textContent = '-$' + montoDescuento.toFixed(2);
+    } else {
+      descRow.style.display = 'none';
+    }
     
     if (porcentaje < 100) {
       document.getElementById('payPending').style.display = 'block';
@@ -1019,16 +797,16 @@
 </script>
 
 <!-- ========== INTEGRACIÓN CON FACTURACIÓN (EN ESPERA) ========== -->
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+<hr class="section-divider-lg">
 
-<div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 2px dashed #cbd5e1; border-radius: 16px; padding: 30px; position: relative; overflow: hidden; opacity: 0.85;">
+<div class="facturacion-section">
   <!-- Lock overlay -->
-  <div style="position: absolute; top: 15px; right: 15px; background: linear-gradient(135deg, #64748b, #475569); color: white; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; z-index: 2;">
+  <div class="facturacion-lock">
     🔒 Función en Desarrollo
   </div>
   
   <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-    <span style="font-size: 40px; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); padding: 12px; border-radius: 16px; filter: grayscale(30%);">🧾</span>
+    <span class="facturacion-icon">🧾</span>
     <div>
       <h3 style="margin: 0; color: #334155;">Integración con Sistema de Facturación</h3>
       <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">
@@ -1037,11 +815,11 @@
     </div>
   </div>
 
-  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 20px; pointer-events: none; user-select: none;">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+  <div class="facturacion-disabled">
+    <div class="facturacion-grid">
       <div>
-        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Tipo de Sistema</label>
-        <select disabled style="width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; cursor: not-allowed;">
+        <label class="facturacion-label">Tipo de Sistema</label>
+        <select disabled class="facturacion-select">
           <option>Seleccionar sistema...</option>
           <option>SRI Ecuador (Facturación Electrónica)</option>
           <option>Otro ERP / Sistema Contable</option>
@@ -1049,31 +827,31 @@
         </select>
       </div>
       <div>
-        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Estado de Conexión</label>
-        <div style="padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-          <span style="width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; display: inline-block;"></span>
+        <label class="facturacion-label">Estado de Conexión</label>
+        <div class="facturacion-status">
+          <span class="facturacion-dot"></span>
           Desconectado
         </div>
       </div>
       <div>
-        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">URL del API</label>
-        <input type="text" disabled placeholder="https://api.tusistema.com/v1" style="width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; cursor: not-allowed; box-sizing: border-box;">
+        <label class="facturacion-label">URL del API</label>
+        <input type="text" disabled placeholder="https://api.tusistema.com/v1" class="facturacion-input">
       </div>
       <div>
-        <label style="display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 6px;">Clave API</label>
-        <input type="password" disabled placeholder="••••••••••••••••" style="width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #94a3b8; font-size: 14px; cursor: not-allowed; box-sizing: border-box;">
+        <label class="facturacion-label">Clave API</label>
+        <input type="password" disabled placeholder="••••••••••••••••" class="facturacion-input">
       </div>
     </div>
     
-    <div style="margin-top: 16px; display: flex; gap: 10px;">
-      <button disabled class="btn btn-sm" style="background: #cbd5e1; color: #94a3b8; border: none; cursor: not-allowed; flex: 1;">🔄 Sincronizar Inventario</button>
-      <button disabled class="btn btn-sm" style="background: #cbd5e1; color: #94a3b8; border: none; cursor: not-allowed; flex: 1;">📊 Ver Historial de Sync</button>
+    <div class="facturacion-actions">
+      <button disabled class="btn btn-sm btn-disabled-gray">🔄 Sincronizar Inventario</button>
+      <button disabled class="btn btn-sm btn-disabled-gray">📊 Ver Historial de Sync</button>
     </div>
   </div>
 
-  <div style="margin-top: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 10px;">
-    <span style="font-size: 20px;">💡</span>
-    <div style="font-size: 13px; color: #0369a1;">
+  <div class="facturacion-info">
+    <span class="facturacion-info-icon">💡</span>
+    <div class="facturacion-info-text">
       <strong>¿Tienes un sistema de facturación en tu tienda?</strong> Esta funcionalidad estará disponible próximamente. 
       Cuando se active, podrás conectar tu sistema contable o de facturación electrónica para:
       <ul style="margin: 8px 0 0 0; padding-left: 20px;">

@@ -4,7 +4,7 @@
 
 {% block content %}
 <h2>🏢 Panel de Control: Empresa / Proveedor</h2>
-<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">
+<p class="text-muted-sm">
   Bienvenido, <strong>{{ proveedor.nombre }}</strong>. Gestiona tus productos y despacha los pedidos de tus clientes.
 </p>
 
@@ -20,24 +20,64 @@
   </div>
   <div class="metric-card">
     <span class="metric-title">RUC</span>
-    <span class="metric-value" style="font-size: 20px; font-weight: 700; margin-top: 5px;">{{ proveedor.ruc }}</span>
+    <span class="metric-value metric-value-sm">{{ proveedor.ruc }}</span>
   </div>
   <div class="metric-card">
     <span class="metric-title">Ubicación</span>
-    <span class="metric-value" style="font-size: 14px; color: var(--text-muted); font-weight: 500; margin-top: 5px;">{{ proveedor.direccion }}</span>
+    <span class="metric-value metric-value-location">{{ proveedor.direccion }}</span>
   </div>
 </div>
 
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
+<!-- ========== DEUDORES ========== -->
+{% if deudores %}
+<div class="deudores-section">
+  <div class="deudores-header">
+    <h3>
+      <span class="deudores-icon">💰</span>
+      Listado de Deudores
+    </h3>
+    <span class="deudores-count">
+      {{ deudores|length }} comprador{{ deudores|length|pluralize:"es" }} con deuda
+    </span>
+  </div>
+  <p class="urgent-description">
+    Compradores/tenderos que tienen pedidos con pagos parciales pendientes. Controla las deudas para evitar acumulación.
+  </p>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Comprador / Tendero</th>
+          <th>Cédula</th>
+          <th>Pedidos con Deuda</th>
+          <th>Deuda Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in deudores %}
+          <tr>
+            <td><strong>{{ d.comprador__nombre }}</strong></td>
+            <td>{{ d.comprador__cedula }}</td>
+            <td>{{ d.cantidad_pedidos }} pedido{{ d.cantidad_pedidos|pluralize:"s" }}</td>
+            <td><span class="deuda-total">${{ d.total_deuda }}</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-  <h3 style="margin: 0;">📦 Tus Productos Registrados</h3>
+<hr class="section-divider">
+
+<div class="section-header-flex">
+  <h3>📦 Tus Productos Registrados</h3>
   <a href="{% url 'crear_producto' %}" class="btn">+ Agregar Nuevo Producto</a>
 </div>
 
 {% if productos %}
   <div class="table-responsive">
-    <table style="margin: 0; width: 100%;">
+    <table>
       <thead>
         <tr>
           <th>Nombre</th>
@@ -45,7 +85,8 @@
           <th>Stock</th>
           <th>Precio ($)</th>
           <th>Vendedor Asociado</th>
-          <th style="text-align: center; min-width: 100px;">Acciones</th>
+          <th>Descuentos por Volumen</th>
+          <th class="th-actions">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -54,18 +95,37 @@
             <td><strong>{{ prod.nombre }}</strong></td>
             <td>{{ prod.descripcion }}</td>
             <td>{{ prod.cantidad }}</td>
-            <td style="font-weight: 600; color: var(--primary-dark);">${{ prod.precio }}</td>
+            <td class="text-bold-primary">${{ prod.precio }}</td>
             <td>
               {% if prod.vendedor %}
-                <span class="badge" style="background-color: #fff8f0; color: #7c5a00; border-color: #ffe7a0;">{{ prod.vendedor.nombre }}</span>
+                <span class="badge badge-vendedor">{{ prod.vendedor.nombre }}</span>
               {% else %}
-                <span class="badge" style="background-color: #fff1f2; color: #e11d48; border-color: #fecdd3;">Ninguno</span>
+                <span class="badge badge-none">Ninguno</span>
               {% endif %}
             </td>
             <td>
-              <div style="width: 100%; text-align: center;">
-                <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary btn-sm" style="width: 100%; display: block; margin-bottom: 6px; box-sizing: border-box;">Editar</a>
-                <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger btn-sm" style="width: 100%; display: block; box-sizing: border-box;" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
+              {% for desc in prod.obtener_descuentos %}
+                <div class="descuento-tag">
+                  🏷️ {{ desc.porcentaje_descuento }}% (≥{{ desc.cantidad_minima }} uds.)
+                  <form action="{% url 'eliminar_descuento' desc.id %}" method="post" class="form-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este descuento?');">✖</button>
+                  </form>
+                </div>
+              {% empty %}
+                <span class="text-muted-italic" style="font-size: 12px;">Sin descuentos</span>
+              {% endfor %}
+              <form action="{% url 'agregar_descuento' prod.id %}" method="post" class="descuento-form-inline" style="margin-top: 6px;">
+                {% csrf_token %}
+                <input type="number" name="cantidad_minima" placeholder="≥Cant" min="2" class="descuento-input-sm" title="Cantidad mínima" required>
+                <input type="number" name="porcentaje_descuento" placeholder="%" min="1" max="100" step="0.01" class="descuento-input-sm" title="Porcentaje de descuento" required>
+                <button type="submit" class="btn btn-success btn-sm">+ Añadir</button>
+              </form>
+            </td>
+            <td>
+              <div class="action-cell">
+                <a href="{% url 'editar_producto' prod.id %}" class="btn btn-secondary btn-sm btn-full-mb">Editar</a>
+                <a href="{% url 'eliminar_producto' prod.id %}" class="btn btn-danger btn-sm btn-full" onclick="return confirm('¿Seguro que deseas eliminar este producto?');">Eliminar</a>
               </div>
             </td>
           </tr>
@@ -74,15 +134,15 @@
     </table>
   </div>
 {% else %}
-  <p style="color: var(--text-muted); font-style: italic;">No tienes productos registrados en este momento.</p>
+  <p class="text-muted-italic">No tienes productos registrados en este momento.</p>
 {% endif %}
 
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+<hr class="section-divider-lg">
 
-<h3 style="margin-bottom: 20px;">📋 Pedidos Recibidos</h3>
+<h3>📋 Pedidos Recibidos</h3>
 {% if pedidos %}
   <div class="table-responsive">
-    <table style="margin: 0; width: 100%;">
+    <table>
       <thead>
         <tr>
           <th>Nro. Pedido</th>
@@ -93,55 +153,55 @@
           <th>Estado de Pago</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th style="text-align: center; min-width: 160px;">Acción de Entrega</th>
+          <th class="th-actions-lg">Acción de Entrega</th>
         </tr>
       </thead>
       <tbody>
         {% for ped in pedidos %}
           <tr>
-            <td style="font-weight: bold; color: var(--text-muted);">#{{ ped.id }}</td>
+            <td class="text-bold-muted">#{{ ped.id }}</td>
             <td>{{ ped.comprador.nombre }}</td>
             <td><strong>{{ ped.producto.nombre }}</strong></td>
             <td>{{ ped.cantidad }}</td>
-            <td style="font-weight: 600; color: var(--success-dark);">${{ ped.obtener_total }}</td>
+            <td class="text-bold-success">${{ ped.obtener_total }}</td>
             <td>
               {% if ped.pago_completado %}
-                <span class="pago-status pago-completo" style="background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">✅ 100% Pagado</span>
+                <span class="pago-status-detailed">✅ 100% Pagado</span>
               {% else %}
-                <span class="pago-status pago-parcial" style="background-color: #fffbeb; color: #92400e; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;">⚠️ 50% — Debe ${{ ped.monto_pendiente }}</span>
+                <span class="pago-status-parcial-detailed">⚠️ 50% — Debe ${{ ped.monto_pendiente }}</span>
               {% endif %}
             </td>
             <td>{{ ped.fecha|date:"d/m/Y H:i" }}</td>
             <td>
               <span class="badge badge-{{ ped.estado|lower }}">{{ ped.estado }}</span>
               {% if ped.entrega_confirmada %}
-                <br><span style="font-size: 11px; color: var(--success-dark); font-weight: bold;">🔒 Entrega Verificada</span>
+                <br><span class="text-small-verified">🔒 Entrega Verificada</span>
               {% endif %}
             </td>
             <td>
-              <div style="width: 100%; text-align: center;">
+              <div class="action-cell">
                 {% if not ped.producto.vendedor %}
-                  <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: bold; display: block; margin-bottom: 6px;">⚠️ Sin Vendedor</span>
+                  <span class="badge badge-sin-vendedor" style="display: block; margin-bottom: 6px;">⚠️ Sin Vendedor</span>
                   {% if not ped.producto.solicitud_vendedor_activa %}
-                    <form action="{% url 'solicitar_vendedor' ped.producto.id %}" method="post" style="margin: 0; width: 100%;">
+                    <form action="{% url 'solicitar_vendedor' ped.producto.id %}" method="post" class="form-inline">
                       {% csrf_token %}
-                      <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%; display: block; box-sizing: border-box;">Solicitar Vendedor</button>
+                      <button type="submit" class="btn btn-secondary btn-sm btn-full">Solicitar Vendedor</button>
                     </form>
                   {% else %}
-                    <span style="font-size: 11px; color: var(--primary-dark); font-weight: bold; display: block;">📢 Petición enviada</span>
+                    <span class="text-small-sent" style="display: block;">📢 Petición enviada</span>
                   {% endif %}
                 {% else %}
                   {% if ped.entrega_confirmada %}
-                    <span class="badge" style="background-color: #ecfdf5; color: #065f46; border-color: #a7f3d0; font-weight: bold; padding: 6px 12px; display: block; box-sizing: border-box;">🔒 Entrega Verificada</span>
+                    <span class="entrega-badge entrega-confirmada" style="display: block; justify-content: center;">🔒 Entrega Verificada</span>
                   {% else %}
-                    <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Asignado a: <strong>{{ ped.producto.vendedor.nombre }}</strong></span>
+                    <span class="text-small-muted" style="display: block; margin-bottom: 4px;">Asignado a: <strong>{{ ped.producto.vendedor.nombre }}</strong></span>
                     {% if ped.estado == 'Pendiente' %}
-                      <form action="{% url 'enviar_pedido' ped.id %}" method="post" style="margin: 0; width: 100%;">
+                      <form action="{% url 'enviar_pedido' ped.id %}" method="post" class="form-inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-success btn-sm" style="width: 100%; display: block; box-sizing: border-box;">Despachar / Enviar</button>
+                        <button type="submit" class="btn btn-success btn-sm btn-full">Despachar / Enviar</button>
                       </form>
                     {% else %}
-                      <span style="font-size: 13px; color: var(--text-muted); font-style: italic; display: block;">Esperando entrega segura</span>
+                      <span class="text-small-muted" style="display: block;">Esperando entrega segura</span>
                     {% endif %}
                   {% endif %}
                 {% endif %}
@@ -153,19 +213,19 @@
     </table>
   </div>
 {% else %}
-  <p style="color: var(--text-muted); font-style: italic;">No has recibido ningún pedido por el momento.</p>
+  <p class="text-muted-italic">No has recibido ningún pedido por el momento.</p>
 {% endif %}
 
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+<hr class="section-divider-lg">
 
-<h3 style="margin-bottom: 20px;">📋 Postulaciones de Vendedores</h3>
-<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+<h3>📋 Postulaciones de Vendedores</h3>
+<p class="text-muted-sm">
   Vendedores que se han postulado para comercializar tus productos. Evalúa su perfil (reputación, calificación y descripción) antes de aprobarlos.
 </p>
 
 {% if postulaciones %}
   <div class="table-responsive">
-    <table style="margin: 0; width: 100%;">
+    <table>
       <thead>
         <tr>
           <th>Producto</th>
@@ -174,7 +234,7 @@
           <th>Calificación</th>
           <th>Descripción del Perfil</th>
           <th>Estado</th>
-          <th style="text-align: center; min-width: 120px;">Acciones</th>
+          <th class="th-actions-sm">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -184,31 +244,31 @@
             <td><strong>{{ post.vendedor.nombre }}</strong></td>
             <td>
               {% if post.vendedor.reputacion == 'Excelente' or post.vendedor.reputacion == 'Buena' %}
-                <span class="badge badge-recibido">{{ post.vendedor.reputacion }}</span>
+                <span class="badge badge-reputacion-buena">{{ post.vendedor.reputacion }}</span>
               {% else %}
-                <span class="badge" style="background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;">{{ post.vendedor.reputacion }}</span>
+                <span class="badge badge-reputacion-mala">{{ post.vendedor.reputacion }}</span>
               {% endif %}
             </td>
             <td>
-              <span style="font-weight: bold; color: var(--warning);">⭐ {{ post.vendedor.calificacion }}/5.00</span>
+              <span class="text-bold-primary">⭐ {{ post.vendedor.calificacion }}/5.00</span>
             </td>
             <td style="max-width: 300px; word-wrap: break-word;">{{ post.vendedor.descripcion_perfil|default:"Sin descripción disponible" }}</td>
             <td>
               <span class="badge badge-{{ post.estado|lower }}">{{ post.estado }}</span>
             </td>
             <td>
-              <div style="width: 100%; text-align: center;">
+              <div class="action-cell">
                 {% if post.estado == 'Pendiente' %}
-                  <form action="{% url 'aprobar_postulacion' post.id %}" method="post" style="margin: 0; width: 100%; margin-bottom: 6px;">
+                  <form action="{% url 'aprobar_postulacion' post.id %}" method="post" class="form-inline" style="margin-bottom: 6px;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-sm" style="width: 100%; display: block; box-sizing: border-box;">Aprobar</button>
+                    <button type="submit" class="btn btn-success btn-sm btn-full">Aprobar</button>
                   </form>
-                  <form action="{% url 'rechazar_postulacion' post.id %}" method="post" style="margin: 0; width: 100%;">
+                  <form action="{% url 'rechazar_postulacion' post.id %}" method="post" class="form-inline">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-sm" style="width: 100%; display: block; box-sizing: border-box;">Rechazar</button>
+                    <button type="submit" class="btn btn-danger btn-sm btn-full">Rechazar</button>
                   </form>
                 {% else %}
-                  <span style="font-size: 13px; color: var(--text-muted); font-style: italic; display: block;">Evaluado</span>
+                  <span class="text-small-muted" style="display: block;">Evaluado</span>
                 {% endif %}
               </div>
             </td>
@@ -218,39 +278,39 @@
     </table>
   </div>
 {% else %}
-  <p style="color: var(--text-muted); font-style: italic;">No tienes postulaciones de vendedores pendientes o recibidas por el momento.</p>
+  <p class="text-muted-italic">No tienes postulaciones de vendedores pendientes o recibidas por el momento.</p>
 {% endif %}
 
 <!-- ========== LISTAS DE REPOSICIÓN RECIBIDAS ========== -->
-<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 40px 0;">
+<hr class="section-divider-lg">
 
-<h3 style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+<h3 style="display: flex; align-items: center; gap: 8px;">
   <span style="font-size: 22px;">📬</span> Solicitudes de Reposición de Tenderos
 </h3>
-<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+<p class="text-muted-sm">
   Listas de productos que las tiendas de los tenderos necesitan reponer. Revisa las cantidades solicitadas para gestionar el reabastecimiento.
 </p>
 
 {% if listas_reposicion_recibidas %}
   {% for lista in listas_reposicion_recibidas %}
-    <div style="background: #ffffff; border: 1.5px solid var(--border-color); border-radius: 14px; padding: 18px 22px; margin-bottom: 16px; transition: all 0.2s ease;">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+    <div class="reposicion-card">
+      <div class="reposicion-card-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="background: #eff6ff; color: #1e40af; padding: 5px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1px solid #bfdbfe;">📋 Lista #{{ lista.id }}</span>
+          <span class="reposicion-card-id">📋 Lista #{{ lista.id }}</span>
           <span style="font-weight: 600; color: var(--text-main);">Tendero: <strong>{{ lista.comprador.nombre }}</strong></span>
         </div>
-        <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted);">
+        <div class="reposicion-card-date">
           <span>📅 {{ lista.fecha_envio|date:"d/m/Y H:i" }}</span>
-          <span style="background: #ecfdf5; color: #065f46; padding: 3px 10px; border-radius: 12px; font-weight: 600; border: 1px solid #a7f3d0; font-size: 11px;">Recibida</span>
+          <span class="reposicion-card-status">Recibida</span>
         </div>
       </div>
       {% if lista.notas %}
-        <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; font-size: 13px; color: #64748b; border-left: 3px solid #cbd5e1; margin-bottom: 12px;">
+        <div class="reposicion-notes">
           📝 <strong>Notas del tendero:</strong> {{ lista.notas }}
         </div>
       {% endif %}
       <div class="table-responsive" style="border: 1px solid #e2e8f0;">
-        <table style="margin: 0; width: 100%;">
+        <table>
           <thead>
             <tr>
               <th>Producto</th>
@@ -264,16 +324,16 @@
                 <tr>
                   <td><strong>{{ item.producto.nombre }}</strong></td>
                   <td>
-                    <span style="font-weight: 600; color: {% if item.producto.cantidad == 0 %}#dc2626{% elif item.producto.stock_bajo %}#ea580c{% else %}var(--text-main){% endif %};">
+                    <span class="reposicion-stock-warn" style="color: {% if item.producto.cantidad == 0 %}#dc2626{% elif item.producto.stock_bajo %}#ea580c{% else %}var(--text-main){% endif %};">
                       {{ item.producto.cantidad }}
                     </span>
                     {% if item.producto.stock_bajo %}
-                      <span style="font-size: 11px; color: #ea580c; font-weight: 600;"> ⚠️ bajo</span>
+                      <span class="reposicion-stock-bajo-label"> ⚠️ bajo</span>
                     {% endif %}
                   </td>
                   <td>
-                    <span style="font-weight: 700; color: #1e40af; font-size: 16px;">{{ item.cantidad_solicitada }}</span>
-                    <span style="color: var(--text-muted); font-size: 12px;"> uds.</span>
+                    <span class="reposicion-qty-lg">{{ item.cantidad_solicitada }}</span>
+                    <span class="reposicion-uds"> uds.</span>
                   </td>
                 </tr>
               {% endif %}
@@ -284,9 +344,7 @@
     </div>
   {% endfor %}
 {% else %}
-  <p style="color: var(--text-muted); font-style: italic;">No has recibido solicitudes de reposición de tus vendedores por el momento.</p>
+  <p class="text-muted-italic">No has recibido solicitudes de reposición de tus vendedores por el momento.</p>
 {% endif %}
 
 {% endblock %}
-
-

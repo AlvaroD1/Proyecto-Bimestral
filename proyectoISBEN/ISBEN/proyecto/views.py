@@ -5,7 +5,7 @@ from django.utils import timezone
 from decimal import Decimal
 from .models import (
     Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion,
-    InventarioTienda, ListaReposicion, ItemReposicion
+    InventarioTienda, ListaReposicion, ItemReposicion, DescuentoVolumen
 )
 from .forms import ProveedorForm, VendedorForm, CompradorForm, ProductoForm
 
@@ -94,12 +94,25 @@ def dashboard_proveedor(request):
         items__producto__proveedor=proveedor
     ).distinct().prefetch_related('items__producto', 'comprador').order_by('-fecha_envio')[:10]
     
+    # ========== DEUDORES ==========
+    from django.db.models import Sum, Count
+    deudores = Pedido.objects.filter(
+        producto__proveedor=proveedor,
+        pago_completado=False
+    ).values(
+        'comprador__id', 'comprador__nombre', 'comprador__cedula'
+    ).annotate(
+        total_deuda=Sum('monto_pendiente'),
+        cantidad_pedidos=Count('id')
+    ).order_by('-total_deuda')
+    
     contexto = {
         'proveedor': proveedor,
         'productos': productos,
         'pedidos': pedidos,
         'postulaciones': postulaciones,
         'listas_reposicion_recibidas': listas_reposicion_recibidas,
+        'deudores': deudores,
         'current_role': 'proveedor',
         'current_role_name': proveedor.nombre,
     }
@@ -139,6 +152,18 @@ def dashboard_vendedor(request):
     ).exclude(
         postulaciones__vendedor=vendedor
     ).distinct()
+    
+    # ========== DEUDORES ==========
+    from django.db.models import Sum, Count
+    deudores = Pedido.objects.filter(
+        producto__vendedor=vendedor,
+        pago_completado=False
+    ).values(
+        'comprador__id', 'comprador__nombre', 'comprador__cedula'
+    ).annotate(
+        total_deuda=Sum('monto_pendiente'),
+        cantidad_pedidos=Count('id')
+    ).order_by('-total_deuda')
         
     contexto = {
         'vendedor': vendedor,
@@ -147,6 +172,7 @@ def dashboard_vendedor(request):
         'proveedores': proveedores,
         'productos_sin_proveedor': productos_sin_proveedor,
         'peticiones_urgentes': peticiones_urgentes,
+        'deudores': deudores,
         'current_role': 'vendedor',
         'current_role_name': vendedor.nombre,
     }
@@ -163,9 +189,29 @@ def dashboard_comprador(request):
     pedidos = comprador.obtener_pedidos()
     
     # Obtener todas las empresas/proveedores que tienen productos
-    proveedores = Proveedor.objects.filter(productos__isnull=False).distinct().prefetch_related('productos')
+    proveedores = Proveedor.objects.filter(productos__isnull=False).distinct().prefetch_related('productos', 'productos__descuentos_volumen')
     # También productos que no tengan proveedor
-    productos_sin_proveedor = Producto.objects.filter(proveedor__isnull=True)
+    productos_sin_proveedor = Producto.objects.filter(proveedor__isnull=True).prefetch_related('descuentos_volumen')
+
+    # Descuentos por producto para pasar al JS de la pasarela
+    import json
+    descuentos_dict = {}
+    for prov in proveedores:
+        for prod in prov.productos.all():
+            descuentos = list(prod.descuentos_volumen.all().values('cantidad_minima', 'porcentaje_descuento'))
+            if descuentos:
+                descuentos_dict[prod.id] = [
+                    {'cantidad_minima': d['cantidad_minima'], 'porcentaje_descuento': float(d['porcentaje_descuento'])}
+                    for d in descuentos
+                ]
+    for prod in productos_sin_proveedor:
+        descuentos = list(prod.descuentos_volumen.all().values('cantidad_minima', 'porcentaje_descuento'))
+        if descuentos:
+            descuentos_dict[prod.id] = [
+                {'cantidad_minima': d['cantidad_minima'], 'porcentaje_descuento': float(d['porcentaje_descuento'])}
+                for d in descuentos
+            ]
+    descuentos_json = json.dumps(descuentos_dict)
 
     # ========== INVENTARIO DE MI TIENDA ==========
     inventario = InventarioTienda.objects.filter(
@@ -195,6 +241,7 @@ def dashboard_comprador(request):
         'inventario_stock_bajo': inventario_stock_bajo,
         'lista_reposicion_activa': lista_reposicion_activa,
         'listas_enviadas': listas_enviadas,
+        'descuentos_json': descuentos_json,
         'current_role': 'comprador',
         'current_role_name': comprador.nombre,
     }
@@ -328,8 +375,24 @@ def comprar_producto(request, id):
             producto.cantidad -= cantidad
             producto.save()
             
+            # Snapshot del precio al momento de la compra
+            precio_unitario = producto.precio
+            
+            # Buscar descuento por volumen aplicable
+            porcentaje_descuento = Decimal('0')
+            descuento_aplicado = Decimal('0')
+            descuento = DescuentoVolumen.objects.filter(
+                producto=producto,
+                cantidad_minima__lte=cantidad
+            ).order_by('-porcentaje_descuento').first()
+            
+            if descuento:
+                porcentaje_descuento = descuento.porcentaje_descuento
+            
             # Calcular montos
-            total = Decimal(str(cantidad)) * producto.precio
+            subtotal = Decimal(str(cantidad)) * precio_unitario
+            descuento_aplicado = subtotal * porcentaje_descuento / Decimal('100')
+            total = subtotal - descuento_aplicado
             monto_pagado = total * Decimal(str(porcentaje_pago)) / Decimal('100')
             monto_pendiente = total - monto_pagado
             pago_completado = (porcentaje_pago == 100)
@@ -337,11 +400,14 @@ def comprar_producto(request, id):
             # Generar código de entrega único
             codigo_entrega = Pedido.generar_codigo()
             
-            # Crear el Pedido con datos de pago y código de entrega
+            # Crear el Pedido con datos de pago, precio congelado y descuento
             Pedido.objects.create(
                 comprador=comprador,
                 producto=producto,
                 cantidad=cantidad,
+                precio_unitario=precio_unitario,
+                descuento_aplicado=descuento_aplicado,
+                porcentaje_descuento=porcentaje_descuento,
                 estado='Pendiente',
                 porcentaje_pago=porcentaje_pago,
                 metodo_pago=metodo_pago,
@@ -355,6 +421,8 @@ def comprar_producto(request, id):
             metodo_display = dict(Pedido.METODO_PAGO_CHOICES).get(metodo_pago, metodo_pago)
             msg = f"✅ Pedido realizado para {cantidad} unidad(es) de {producto.nombre}. "
             msg += f"Método: {metodo_display}. "
+            if porcentaje_descuento > 0:
+                msg += f"🏷️ Descuento {porcentaje_descuento}%: -${descuento_aplicado}. "
             if pago_completado:
                 msg += f"Pago completo: ${monto_pagado}. "
             else:
@@ -837,3 +905,78 @@ def actualizar_inventario(request, inventario_id):
     
     return redirect('dashboard_comprador')
 
+
+# ========== GESTIÓN DE DESCUENTOS POR VOLUMEN (PROVEEDOR) ==========
+
+def agregar_descuento(request, producto_id):
+    """El proveedor agrega un descuento por volumen a un producto."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
+        messages.error(request, "Acceso denegado. Solo los proveedores pueden gestionar descuentos.")
+        return redirect('index')
+    
+    producto = get_object_or_404(Producto, pk=producto_id)
+    if producto.proveedor_id != role_id:
+        messages.error(request, "Este producto no te pertenece.")
+        return redirect('dashboard_proveedor')
+    
+    if request.method == 'POST':
+        try:
+            cantidad_minima = int(request.POST.get('cantidad_minima', 0))
+            porcentaje_descuento = Decimal(request.POST.get('porcentaje_descuento', '0'))
+            descripcion = request.POST.get('descripcion', '').strip()
+        except (ValueError, TypeError):
+            messages.error(request, "Datos inválidos. Verifica los campos.")
+            return redirect('dashboard_proveedor')
+        
+        if cantidad_minima < 2:
+            messages.error(request, "La cantidad mínima debe ser al menos 2.")
+            return redirect('dashboard_proveedor')
+        
+        if porcentaje_descuento <= 0 or porcentaje_descuento > 100:
+            messages.error(request, "El porcentaje debe ser mayor a 0 y menor o igual a 100.")
+            return redirect('dashboard_proveedor')
+        
+        # Verificar si ya existe un descuento con esa cantidad mínima
+        existente = DescuentoVolumen.objects.filter(producto=producto, cantidad_minima=cantidad_minima).first()
+        if existente:
+            existente.porcentaje_descuento = porcentaje_descuento
+            existente.descripcion = descripcion
+            existente.save()
+            messages.success(request, 
+                f"🏷️ Descuento actualizado para '{producto.nombre}': "
+                f"{porcentaje_descuento}% al comprar ≥{cantidad_minima} unidades."
+            )
+        else:
+            DescuentoVolumen.objects.create(
+                producto=producto,
+                cantidad_minima=cantidad_minima,
+                porcentaje_descuento=porcentaje_descuento,
+                descripcion=descripcion
+            )
+            messages.success(request, 
+                f"🏷️ Descuento creado para '{producto.nombre}': "
+                f"{porcentaje_descuento}% al comprar ≥{cantidad_minima} unidades."
+            )
+    
+    return redirect('dashboard_proveedor')
+
+
+def eliminar_descuento(request, descuento_id):
+    """El proveedor elimina un descuento por volumen."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
+        return redirect('index')
+    
+    descuento = get_object_or_404(DescuentoVolumen, pk=descuento_id)
+    if descuento.producto.proveedor_id != role_id:
+        messages.error(request, "Este descuento no te pertenece.")
+        return redirect('dashboard_proveedor')
+    
+    nombre_producto = descuento.producto.nombre
+    descuento.delete()
+    messages.success(request, f"Descuento eliminado de '{nombre_producto}'.")
+    
+    return redirect('dashboard_proveedor')

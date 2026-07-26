@@ -141,6 +141,28 @@ class Producto(models.Model):
         """Retorna True si el stock actual está en o por debajo del umbral mínimo."""
         return self.cantidad <= self.stock_minimo
 
+    def obtener_descuentos(self):
+        """Retorna los descuentos por volumen del producto, ordenados por cantidad mínima."""
+        return self.descuentos_volumen.all().order_by('cantidad_minima')
+
+
+class DescuentoVolumen(models.Model):
+    """Descuento automático al comprar cierta cantidad mínima de un producto."""
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="descuentos_volumen")
+    cantidad_minima = models.IntegerField(help_text="Cantidad mínima de unidades para aplicar el descuento.")
+    porcentaje_descuento = models.DecimalField(max_digits=5, decimal_places=2, help_text="Porcentaje de descuento (ej: 5.00 para 5%).")
+    descripcion = models.CharField(max_length=200, blank=True, null=True, help_text="Descripción opcional del descuento.")
+
+    class Meta:
+        verbose_name = "Descuento por Volumen"
+        verbose_name_plural = "Descuentos por Volumen"
+        unique_together = ('producto', 'cantidad_minima')
+        ordering = ['cantidad_minima']
+
+    def __str__(self):
+        return f"{self.porcentaje_descuento}% descuento en {self.producto.nombre} (≥{self.cantidad_minima} uds.)"
+
+
 class Pedido(models.Model):
     ESTADOS = [
         ('Pendiente', 'Pendiente'),
@@ -161,6 +183,14 @@ class Pedido(models.Model):
     cantidad = models.IntegerField(default=1)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='Pendiente')
     fecha = models.DateTimeField(auto_now_add=True)
+    # Snapshot del precio al momento de la compra (no cambia si se edita el producto después)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+        help_text="Precio unitario congelado al momento de crear el pedido.")
+    # Campos de descuento por volumen
+    descuento_aplicado = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+        help_text="Monto total de descuento aplicado en este pedido.")
+    porcentaje_descuento = models.DecimalField(max_digits=5, decimal_places=2, default=0,
+        help_text="Porcentaje de descuento aplicado (ej: 5.00 para 5%).")
     # Campos de pago
     porcentaje_pago = models.IntegerField(choices=PORCENTAJE_CHOICES, default=100)
     metodo_pago = models.CharField(max_length=30, choices=METODO_PAGO_CHOICES, default='tarjeta_credito')
@@ -176,7 +206,9 @@ class Pedido(models.Model):
         return "Pedido #%d - %s (%s)" % (self.id, self.producto.nombre, self.estado)
 
     def obtener_total(self):
-        return self.cantidad * self.producto.precio
+        """Calcula el total usando el precio congelado y aplicando descuento."""
+        subtotal = self.cantidad * self.precio_unitario
+        return subtotal - self.descuento_aplicado
 
     @staticmethod
     def generar_codigo():

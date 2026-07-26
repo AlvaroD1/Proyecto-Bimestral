@@ -3,98 +3,11 @@
 {% block title %}Inicio - Conexia{% endblock %}
 
 {% block content %}
-<style>
-  .portal-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    align-items: start;
-  }
-  @media (max-width: 768px) {
-    .portal-container {
-      grid-template-columns: 1fr;
-    }
-  }
-  .login-section {
-    background: #ffffff;
-    padding: 30px;
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 6px -1px rgba(251, 67, 24, 0.05);
-  }
-  .login-section h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: var(--primary-dark);
-    font-size: 20px;
-    font-weight: 700;
-  }
-  .register-section h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: var(--text-main);
-    font-size: 20px;
-    font-weight: 700;
-  }
-  .register-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  .reg-card {
-    background: #fefaf7;
-    border: 1px solid var(--border-color);
-    padding: 20px;
-    border-radius: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.25s ease-in-out;
-    text-decoration: none;
-    color: inherit;
-  }
-  .reg-card:hover {
-    border-color: var(--primary-light);
-    background: #fff3eb;
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px -2px rgba(251, 67, 24, 0.1);
-  }
-  .reg-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .reg-card-title {
-    font-weight: 600;
-    color: var(--primary-dark);
-    font-size: 16px;
-  }
-  .reg-card-desc {
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-  .reg-card-icon {
-    font-size: 24px;
-    background: rgba(251, 67, 24, 0.08);
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    transition: all 0.25s;
-  }
-  .reg-card:hover .reg-card-icon {
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    color: white;
-  }
-</style>
-
 <div class="portal-container">
   <!-- Login Section -->
   <div class="login-section">
     <h3>Iniciar Sesión</h3>
-    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 25px;">
+    <p class="login-subtitle">
       Ingresa tus credenciales para acceder a tu panel de control de acuerdo a tu rol registrado.
     </p>
     <form action="{% url 'login_role' %}" method="post">
@@ -107,8 +20,8 @@
         <label for="id_contrasenia">Contraseña:</label>
         <input type="password" name="contrasenia" id="id_contrasenia" placeholder="••••••••" required>
       </p>
-      <div style="margin-top: 25px;">
-        <button type="submit" class="btn" style="width: 100%;">Ingresar al Sistema</button>
+      <div class="login-btn-container">
+        <button type="submit" class="btn btn-full">Ingresar al Sistema</button>
       </div>
     </form>
   </div>
@@ -116,7 +29,7 @@
   <!-- Registration Section -->
   <div class="register-section">
     <h3>¿No tienes una cuenta?</h3>
-    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 25px;">
+    <p class="login-subtitle">
       Selecciona tu perfil de trabajo y completa el formulario de registro para empezar.
     </p>
     <div class="register-cards">

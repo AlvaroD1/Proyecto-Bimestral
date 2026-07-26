@@ -164,7 +164,7 @@ class CompradorForm(forms.ModelForm):
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['nombre', 'descripcion', 'cantidad', 'precio', 'stock_minimo', 'proveedor', 'vendedor']
+        fields = ['nombre', 'descripcion', 'cantidad', 'precio', 'stock_minimo']
         labels = {
             'stock_minimo': 'Stock Mínimo (Umbral de alerta)',
         }
