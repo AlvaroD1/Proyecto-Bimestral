@@ -8,9 +8,13 @@ import json
 from decimal import Decimal
 from .models import (
     Proveedor, Vendedor, Comprador, Producto, Pedido, Postulacion,
-    InventarioTienda, ListaReposicion, ItemReposicion, DescuentoVolumen
+    InventarioTienda, ListaReposicion, ItemReposicion, DescuentoVolumen,
+    ConfiguracionFacturacion
 )
-from .forms import ProveedorForm, VendedorForm, CompradorForm, ProductoForm
+from .forms import (
+    ProveedorForm, VendedorForm, CompradorForm, ProductoForm,
+    PerfilCompradorForm, PerfilVendedorForm, PerfilProveedorForm
+)
 
 def index(request):
     return render(request, 'index.html')
@@ -234,6 +238,13 @@ def dashboard_comprador(request):
         comprador=comprador, estado='Enviada'
     ).prefetch_related('items__producto__proveedor')[:5]
     
+    # ========== CONFIGURACIÓN DE FACTURACIÓN ==========
+    # Obtener o crear config de facturación (para tenderos existentes: habilitada por defecto)
+    config_facturacion, created = ConfiguracionFacturacion.objects.get_or_create(
+        comprador=comprador,
+        defaults={'sistema_activo': True, 'tipo_sistema': 'sri_ecuador'}
+    )
+
     contexto = {
         'comprador': comprador,
         'proveedores': proveedores,
@@ -245,6 +256,7 @@ def dashboard_comprador(request):
         'lista_reposicion_activa': lista_reposicion_activa,
         'listas_enviadas': listas_enviadas,
         'descuentos_json': descuentos_json,
+        'config_facturacion': config_facturacion,
         'current_role': 'comprador',
         'current_role_name': comprador.nombre,
     }
@@ -275,7 +287,14 @@ def crear_comprador(request):
     if request.method == 'POST':
         formulario = CompradorForm(request.POST)
         if formulario.is_valid():
-            formulario.save()
+            comprador = formulario.save()
+            # Crear ConfiguracionFacturacion según la respuesta del usuario
+            tiene_facturacion = formulario.cleaned_data.get('tiene_facturacion', False)
+            ConfiguracionFacturacion.objects.create(
+                comprador=comprador,
+                sistema_activo=tiene_facturacion,
+                tipo_sistema='ninguno' if not tiene_facturacion else 'sri_ecuador',
+            )
             return redirect('index')
     else:
         formulario = CompradorForm()
@@ -984,6 +1003,7 @@ def eliminar_descuento(request, descuento_id):
     
     return redirect('dashboard_proveedor')
 
+<<<<<<< HEAD
 # ========== API DE SEGUIMIENTO GPS ==========
 
 @csrf_exempt
@@ -1043,3 +1063,99 @@ def obtener_ubicacion_vendedor(request, pedido_id):
         'total_activos': total_activos
     })
 
+=======
+
+# ========== PÁGINAS DE PERFIL ==========
+
+def perfil_comprador(request):
+    """Página de perfil del Comprador/Tendero."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        return redirect('index')
+    
+    comprador = get_object_or_404(Comprador, pk=role_id)
+    config_facturacion, _ = ConfiguracionFacturacion.objects.get_or_create(
+        comprador=comprador,
+        defaults={'sistema_activo': True, 'tipo_sistema': 'sri_ecuador'}
+    )
+    
+    if request.method == 'POST':
+        formulario = PerfilCompradorForm(request.POST, request.FILES, instance=comprador)
+        if formulario.is_valid():
+            formulario.save()
+            # Actualizar config de facturación
+            sistema_facturacion = formulario.cleaned_data.get('sistema_facturacion', False)
+            config_facturacion.sistema_activo = sistema_facturacion
+            config_facturacion.save()
+            messages.success(request, '✅ Perfil actualizado exitosamente.')
+            return redirect('perfil_comprador')
+    else:
+        formulario = PerfilCompradorForm(
+            instance=comprador,
+            initial={'sistema_facturacion': config_facturacion.sistema_activo}
+        )
+    
+    contexto = {
+        'comprador': comprador,
+        'formulario': formulario,
+        'config_facturacion': config_facturacion,
+        'current_role': 'comprador',
+        'current_role_name': comprador.nombre,
+    }
+    return render(request, 'perfil_comprador.html', contexto)
+
+
+def perfil_vendedor(request):
+    """Página de perfil del Vendedor."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('vendedor')
+    if not role_id:
+        return redirect('index')
+    
+    vendedor = get_object_or_404(Vendedor, pk=role_id)
+    
+    if request.method == 'POST':
+        formulario = PerfilVendedorForm(request.POST, request.FILES, instance=vendedor)
+        if formulario.is_valid():
+            formulario.save()
+            messages.success(request, '✅ Perfil actualizado exitosamente.')
+            return redirect('perfil_vendedor')
+    else:
+        formulario = PerfilVendedorForm(instance=vendedor)
+    
+    contexto = {
+        'vendedor': vendedor,
+        'formulario': formulario,
+        'current_role': 'vendedor',
+        'current_role_name': vendedor.nombre,
+    }
+    return render(request, 'perfil_vendedor.html', contexto)
+
+
+def perfil_proveedor(request):
+    """Página de perfil del Proveedor/Empresa."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('proveedor')
+    if not role_id:
+        return redirect('index')
+    
+    proveedor = get_object_or_404(Proveedor, pk=role_id)
+    
+    if request.method == 'POST':
+        formulario = PerfilProveedorForm(request.POST, request.FILES, instance=proveedor)
+        if formulario.is_valid():
+            formulario.save()
+            messages.success(request, '✅ Perfil actualizado exitosamente.')
+            return redirect('perfil_proveedor')
+    else:
+        formulario = PerfilProveedorForm(instance=proveedor)
+    
+    contexto = {
+        'proveedor': proveedor,
+        'formulario': formulario,
+        'current_role': 'proveedor',
+        'current_role_name': proveedor.nombre,
+    }
+    return render(request, 'perfil_proveedor.html', contexto)
+>>>>>>> a8c57b0 (Perfiles para cada Rol)

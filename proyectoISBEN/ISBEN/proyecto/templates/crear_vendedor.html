@@ -11,7 +11,18 @@
 
   <form action="" method="post">
     {% csrf_token %}
-    {{ formulario.as_p }}
+    
+    {% for field in formulario %}
+      {% if field.name != 'acepta_letras_cambio' %}
+        <p>
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.errors %}
+            <span class="form-error">{{ field.errors.0 }}</span>
+          {% endif %}
+        </p>
+      {% endif %}
+    {% endfor %}
     
     <div class="auth-req-box">
       <strong class="auth-req-title">Requisitos de la contraseña:</strong>
@@ -20,6 +31,28 @@
         <li>Debe contener al menos una letra <strong>minúscula</strong>.</li>
         <li>Debe contener al menos un <strong>número</strong>.</li>
       </ul>
+    </div>
+
+    <!-- Letras de Cambio -->
+    <div class="letras-cambio-card">
+      <div class="letras-cambio-header">
+        <span class="letras-cambio-icon">📜</span>
+        <div>
+          <h4 class="letras-cambio-title">Letras de Cambio / Crédito</h4>
+          <p class="letras-cambio-desc">
+            Active esta opción si desea ofrecer acuerdos de crédito o letras de cambio a los compradores/tenderos.
+          </p>
+        </div>
+      </div>
+      <label class="toggle-switch">
+        {{ formulario.acepta_letras_cambio }}
+        <span class="toggle-slider"></span>
+        <span class="toggle-label-text">Acepto ofrecer letras de cambio</span>
+      </label>
+      <div class="letras-cambio-disclaimer">
+        <span class="disclaimer-icon">⚠️</span>
+        <span class="disclaimer-text">Los acuerdos de crédito o letras de venta son gestionados directamente entre el Vendedor y el Comprador, sin responsabilidad para Conexia.</span>
+      </div>
     </div>
 
     <div class="form-actions">

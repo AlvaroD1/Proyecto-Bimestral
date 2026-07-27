@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.hashers import make_password
-from .models import Proveedor, Vendedor, Comprador, Producto, ItemReposicion
+from .models import Proveedor, Vendedor, Comprador, Producto, ItemReposicion, ConfiguracionFacturacion
+import os
 
 def validar_usuario_unico(usuario, current_id=None, current_role=None):
     # Check Proveedor (exclude current if role matches)
@@ -78,9 +79,10 @@ class ProveedorForm(forms.ModelForm):
 class VendedorForm(forms.ModelForm):
     class Meta:
         model = Vendedor
-        fields = ['nombre', 'cedula', 'telefono', 'usuario', 'contrasenia']
+        fields = ['nombre', 'cedula', 'telefono', 'usuario', 'contrasenia', 'acepta_letras_cambio']
         widgets = {
             'contrasenia': forms.PasswordInput(),
+            'acepta_letras_cambio': forms.CheckboxInput(),
         }
         labels = {
             'nombre': 'Nombre Completo',
@@ -88,6 +90,7 @@ class VendedorForm(forms.ModelForm):
             'telefono': 'Teléfono',
             'usuario': 'Nombre de Usuario',
             'contrasenia': 'Contraseña',
+            'acepta_letras_cambio': 'Acepto ofrecer letras de cambio / crédito a compradores',
         }
 
     def clean_usuario(self):
@@ -119,6 +122,14 @@ class VendedorForm(forms.ModelForm):
         return instance
 
 class CompradorForm(forms.ModelForm):
+    tiene_facturacion = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='¿Cuenta con un sistema de facturación?',
+        help_text='Active esta opción si su tienda cuenta con un sistema de facturación electrónica o contable que desee integrar.',
+        widget=forms.CheckboxInput(attrs={'class': 'toggle-checkbox'}),
+    )
+
     class Meta:
         model = Comprador
         fields = ['nombre', 'cedula', 'direccion', 'referencias_direccion', 'usuario', 'contrasenia', 'latitud', 'longitud']
@@ -191,3 +202,100 @@ class ItemReposicionForm(forms.Form):
     )
 
 
+# ========== VALIDACIÓN DE IMÁGENES ==========
+
+FORMATOS_IMAGEN_VALIDOS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+
+def validar_formato_imagen(imagen):
+    """Valida que el archivo subido sea una imagen en formato válido."""
+    if imagen:
+        ext = os.path.splitext(imagen.name)[1].lower()
+        if ext not in FORMATOS_IMAGEN_VALIDOS:
+            raise forms.ValidationError(
+                f"Formato de imagen no válido ({ext}). "
+                f"Solo se permiten: {', '.join(FORMATOS_IMAGEN_VALIDOS)}"
+            )
+
+
+# ========== FORMULARIOS DE PERFIL ==========
+
+class PerfilCompradorForm(forms.ModelForm):
+    sistema_facturacion = forms.BooleanField(
+        required=False,
+        label='¿Tiene sistema de facturación activo?',
+        help_text='Habilite o deshabilite la integración con su sistema de facturación.',
+        widget=forms.CheckboxInput(attrs={'class': 'toggle-checkbox'}),
+    )
+
+    class Meta:
+        model = Comprador
+        fields = ['nombre', 'cedula', 'direccion', 'telefono', 'foto_perfil']
+        labels = {
+            'nombre': 'Nombre Completo',
+            'cedula': 'Cédula',
+            'direccion': 'Dirección',
+            'telefono': 'Teléfono',
+            'foto_perfil': 'Foto de Perfil',
+        }
+        widgets = {
+            'foto_perfil': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+        }
+
+    def clean_foto_perfil(self):
+        imagen = self.cleaned_data.get('foto_perfil')
+        validar_formato_imagen(imagen)
+        return imagen
+
+
+class PerfilVendedorForm(forms.ModelForm):
+    class Meta:
+        model = Vendedor
+        fields = ['nombre', 'cedula', 'telefono', 'descripcion_perfil', 'foto_perfil', 'acepta_letras_cambio']
+        labels = {
+            'nombre': 'Nombre Completo',
+            'cedula': 'Cédula',
+            'telefono': 'Teléfono',
+            'descripcion_perfil': 'Descripción del Perfil',
+            'foto_perfil': 'Foto de Perfil',
+            'acepta_letras_cambio': 'Acepto ofrecer letras de cambio / crédito a compradores',
+        }
+        widgets = {
+            'foto_perfil': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+            'descripcion_perfil': forms.Textarea(attrs={'rows': 4}),
+            'acepta_letras_cambio': forms.CheckboxInput(),
+        }
+
+    def clean_foto_perfil(self):
+        imagen = self.cleaned_data.get('foto_perfil')
+        validar_formato_imagen(imagen)
+        return imagen
+
+
+class PerfilProveedorForm(forms.ModelForm):
+    class Meta:
+        model = Proveedor
+        fields = [
+            'nombre', 'ruc', 'direccion', 'telefono', 'email', 'foto_perfil',
+            'pagina_web', 'red_facebook', 'red_instagram', 'red_linkedin', 'red_twitter',
+        ]
+        labels = {
+            'nombre': 'Nombre / Razón Social',
+            'ruc': 'RUC',
+            'direccion': 'Dirección',
+            'telefono': 'Teléfono',
+            'email': 'Correo Electrónico',
+            'foto_perfil': 'Logo / Foto de la Empresa',
+            'pagina_web': 'Página Web Oficial',
+            'red_facebook': 'Facebook',
+            'red_instagram': 'Instagram',
+            'red_linkedin': 'LinkedIn',
+            'red_twitter': 'Twitter / X',
+        }
+        widgets = {
+            'foto_perfil': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+        }
+
+    def clean_foto_perfil(self):
+        imagen = self.cleaned_data.get('foto_perfil')
+        validar_formato_imagen(imagen)
+        return imagen

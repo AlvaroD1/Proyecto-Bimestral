@@ -15,7 +15,18 @@
 
   <form action="" method="post">
     {% csrf_token %}
-    {{ formulario.as_p }}
+    
+    {% for field in formulario %}
+      {% if field.name != 'tiene_facturacion' %}
+        <p>
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.errors %}
+            <span class="form-error">{{ field.errors.0 }}</span>
+          {% endif %}
+        </p>
+      {% endif %}
+    {% endfor %}
     
     <div style="margin-bottom: 20px;">
       <label>📍 Ubicación de la tienda (Opcional, haz clic en el mapa)</label>
@@ -32,6 +43,27 @@
         <li>Debe contener al menos una letra <strong>minúscula</strong>.</li>
         <li>Debe contener al menos un <strong>número</strong>.</li>
       </ul>
+    </div>
+
+    <!-- Toggle de Facturación -->
+    <div class="facturacion-toggle-card">
+      <div class="facturacion-toggle-header">
+        <span class="facturacion-toggle-icon">🧾</span>
+        <div>
+          <h4 class="facturacion-toggle-title">Sistema de Facturación</h4>
+          <p class="facturacion-toggle-desc">
+            {{ formulario.tiene_facturacion.help_text }}
+          </p>
+        </div>
+      </div>
+      <label class="toggle-switch">
+        {{ formulario.tiene_facturacion }}
+        <span class="toggle-slider"></span>
+        <span class="toggle-label-text">Tengo sistema de facturación</span>
+      </label>
+      {% if formulario.tiene_facturacion.errors %}
+        <span class="form-error">{{ formulario.tiene_facturacion.errors.0 }}</span>
+      {% endif %}
     </div>
 
     <div class="form-actions">

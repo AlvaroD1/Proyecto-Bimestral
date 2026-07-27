@@ -43,6 +43,16 @@
     <span class="metric-title">Teléfono de Contacto</span>
     <span class="metric-value metric-value-phone">{{ vendedor.telefono|default:"No registrado" }}</span>
   </div>
+  {% if vendedor.acepta_letras_cambio %}
+  <div class="metric-card metric-card-letras">
+    <span class="metric-title">Letras de Cambio</span>
+    <span class="metric-value" style="font-size: 14px;">
+      <span class="badge-letras-cambio" title="Los acuerdos de crédito o letras de venta son gestionados directamente entre el Vendedor y el Comprador, sin responsabilidad para Conexia.">
+        📜 Habilitadas
+      </span>
+    </span>
+  </div>
+  {% endif %}
 </div>
 
 <!-- ========== DEUDORES ========== -->

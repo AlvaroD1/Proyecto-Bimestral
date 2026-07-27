@@ -818,7 +818,8 @@
   });
 </script>
 
-<!-- ========== INTEGRACIÓN CON FACTURACIÓN (EN ESPERA) ========== -->
+<!-- ========== INTEGRACIÓN CON FACTURACIÓN (CONDICIONAL) ========== -->
+{% if config_facturacion.sistema_activo %}
 <hr class="section-divider-lg">
 
 <div class="facturacion-section">
@@ -874,16 +875,20 @@
   <div class="facturacion-info">
     <span class="facturacion-info-icon">💡</span>
     <div class="facturacion-info-text">
-      <strong>¿Tienes un sistema de facturación en tu tienda?</strong> Esta funcionalidad estará disponible próximamente. 
+      <strong>Sistema de facturación habilitado.</strong> Esta funcionalidad estará disponible próximamente. 
       Cuando se active, podrás conectar tu sistema contable o de facturación electrónica para:
       <ul style="margin: 8px 0 0 0; padding-left: 20px;">
         <li>Sincronizar el inventario de tu tienda automáticamente con cada venta que realices</li>
         <li>Generar alertas de stock bajo y agregar a la lista de reposición automáticamente</li>
         <li>Llevar un control automatizado de cuándo pedir más productos</li>
       </ul>
+      <p style="margin-top: 10px; font-size: 12px; color: #94a3b8;">
+        Puedes deshabilitar esta opción desde tu <a href="{% url 'perfil_comprador' %}" style="color: #3b82f6;">perfil</a> en cualquier momento.
+      </p>
     </div>
   </div>
 </div>
+{% endif %}
 
 </div>
 
@@ -954,3 +959,4 @@
   });
 </script>
 {% endblock %}
+

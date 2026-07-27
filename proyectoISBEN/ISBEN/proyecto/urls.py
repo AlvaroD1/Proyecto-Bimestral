@@ -47,8 +47,15 @@ urlpatterns = [
     path('descuento/agregar/<int:producto_id>/', views.agregar_descuento, name='agregar_descuento'),
     path('descuento/eliminar/<int:descuento_id>/', views.eliminar_descuento, name='eliminar_descuento'),
 
+<<<<<<< HEAD
     # API Seguimiento GPS
     path('api/vendedor/actualizar-ubicacion/', views.actualizar_ubicacion_vendedor, name='actualizar_ubicacion_vendedor'),
     path('api/pedido/obtener-ubicacion/<int:pedido_id>/', views.obtener_ubicacion_vendedor, name='obtener_ubicacion_vendedor'),
+=======
+    # Perfiles
+    path('perfil/comprador/', views.perfil_comprador, name='perfil_comprador'),
+    path('perfil/vendedor/', views.perfil_vendedor, name='perfil_vendedor'),
+    path('perfil/proveedor/', views.perfil_proveedor, name='perfil_proveedor'),
+>>>>>>> a8c57b0 (Perfiles para cada Rol)
 ]
 

@@ -1,0 +1,134 @@
+{% extends "master.html" %}
+{% load static %}
+
+{% block title %}Mi Perfil - {{ comprador.nombre }} | Conexia{% endblock %}
+
+{% block content %}
+<div class="profile-wrapper">
+  <!-- Hero Banner Header -->
+  <div class="profile-hero hero-comprador">
+    <div class="profile-hero-avatar">
+      {% if comprador.foto_perfil %}
+        <img src="{{ comprador.foto_perfil.url }}" alt="Foto de {{ comprador.nombre }}" class="avatar-hero-img">
+      {% else %}
+        <div class="avatar-hero-placeholder placeholder-comprador">
+          <span>{{ comprador.nombre|make_list|first|upper }}</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="profile-hero-info">
+      <div class="profile-role-badge badge-role-comprador">
+        <span class="badge-icon">🛒</span> Comprador / Tendero
+      </div>
+      <h2 class="profile-hero-name">{{ comprador.nombre }}</h2>
+      <p class="profile-hero-sub">Cédula: <strong>{{ comprador.cedula }}</strong> | Usuario: <code>{{ comprador.usuario }}</code></p>
+    </div>
+  </div>
+
+  <!-- Main Grid Layout -->
+  <div class="profile-grid">
+    <!-- Left Column: Details & Facturación Status -->
+    <div class="profile-sidebar">
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">📋</span>
+          <h3>Información General</h3>
+        </div>
+        
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-item-label">Cédula</span>
+            <span class="info-item-value">{{ comprador.cedula }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Usuario</span>
+            <span class="info-item-value">{{ comprador.usuario }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Teléfono</span>
+            <span class="info-item-value">{{ comprador.telefono|default:"No registrado" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Dirección</span>
+            <span class="info-item-value">{{ comprador.direccion }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Facturación Status Card -->
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">🧾</span>
+          <h3>Sistema de Facturación</h3>
+        </div>
+        <div class="facturacion-status-box {% if config_facturacion.sistema_activo %}active{% else %}inactive{% endif %}">
+          {% if config_facturacion.sistema_activo %}
+            <span class="status-indicator-dot dot-green"></span>
+            <strong>Facturación Habilitada</strong>
+            <p>La sección de integración aparece visible en tu panel de comprador.</p>
+          {% else %}
+            <span class="status-indicator-dot dot-gray"></span>
+            <strong>Facturación Deshabilitada</strong>
+            <p>La sección de facturación está oculta en tu panel de comprador.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Edit Profile Form -->
+    <div class="profile-main">
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">✏️</span>
+          <h3>Editar Perfil de Comprador</h3>
+        </div>
+
+        <form action="" method="post" enctype="multipart/form-data" class="profile-edit-form">
+          {% csrf_token %}
+          
+          <div class="form-fields-grid">
+            {% for field in formulario %}
+              {% if field.name != 'sistema_facturacion' %}
+                <div class="form-field-wrapper {% if field.name == 'foto_perfil' or field.name == 'direccion' %}full-width{% endif %}">
+                  <label for="{{ field.id_for_label }}" class="custom-form-label">
+                    {{ field.label }}
+                    {% if field.field.required %}<span class="req-star">*</span>{% endif %}
+                  </label>
+                  {{ field }}
+                  {% if field.help_text %}
+                    <span class="custom-help-text">{{ field.help_text }}</span>
+                  {% endif %}
+                  {% if field.errors %}
+                    <span class="custom-field-error">{{ field.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <!-- Facturación Toggle Card -->
+          <div class="toggle-card-styled">
+            <div class="toggle-card-header">
+              <span class="toggle-card-icon">🧾</span>
+              <div>
+                <h4>Sistema de Facturación</h4>
+                <p>{{ formulario.sistema_facturacion.help_text }}</p>
+              </div>
+            </div>
+            <label class="custom-toggle-switch">
+              {{ formulario.sistema_facturacion }}
+              <span class="custom-toggle-slider"></span>
+              <span class="custom-toggle-text">Habilitar Facturación en Panel</span>
+            </label>
+          </div>
+
+          <div class="profile-form-footer">
+            <button type="submit" class="btn btn-save-profile">💾 Guardar Cambios</button>
+            <a href="{% url 'dashboard_comprador' %}" class="btn btn-back-profile">← Volver al Panel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -241,7 +241,14 @@
         {% for post in postulaciones %}
           <tr>
             <td><strong>{{ post.producto.nombre }}</strong></td>
-            <td><strong>{{ post.vendedor.nombre }}</strong></td>
+            <td>
+              <strong>{{ post.vendedor.nombre }}</strong>
+              {% if post.vendedor.acepta_letras_cambio %}
+                <span class="badge-letras-cambio" title="Los acuerdos de crédito o letras de venta son gestionados directamente entre el Vendedor y el Comprador, sin responsabilidad para Conexia.">
+                  📜 Letras de Cambio
+                </span>
+              {% endif %}
+            </td>
             <td>
               {% if post.vendedor.reputacion == 'Excelente' or post.vendedor.reputacion == 'Buena' %}
                 <span class="badge badge-reputacion-buena">{{ post.vendedor.reputacion }}</span>

@@ -1,0 +1,141 @@
+{% extends "master.html" %}
+{% load static %}
+
+{% block title %}Mi Perfil - {{ proveedor.nombre }} | Conexia{% endblock %}
+
+{% block content %}
+<div class="profile-wrapper">
+  <!-- Hero Banner Header -->
+  <div class="profile-hero hero-proveedor">
+    <div class="profile-hero-avatar">
+      {% if proveedor.foto_perfil %}
+        <img src="{{ proveedor.foto_perfil.url }}" alt="Logo de {{ proveedor.nombre }}" class="avatar-hero-img">
+      {% else %}
+        <div class="avatar-hero-placeholder">
+          🏢
+        </div>
+      {% endif %}
+    </div>
+    <div class="profile-hero-info">
+      <div class="profile-role-badge">
+        <span class="badge-icon">🏢</span> Empresa Proveedora
+      </div>
+      <h2 class="profile-hero-name">{{ proveedor.nombre }}</h2>
+      <p class="profile-hero-sub">RUC: <strong>{{ proveedor.ruc }}</strong> | Usuario: <code>{{ proveedor.usuario }}</code></p>
+    </div>
+  </div>
+
+  <!-- Main Grid Layout -->
+  <div class="profile-grid">
+    <!-- Left Column: Details & Social Links -->
+    <div class="profile-sidebar">
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">📋</span>
+          <h3>Información General</h3>
+        </div>
+        
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-item-label">RUC de la Empresa</span>
+            <span class="info-item-value">{{ proveedor.ruc }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Usuario de Acceso</span>
+            <span class="info-item-value">{{ proveedor.usuario }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Teléfono de Contacto</span>
+            <span class="info-item-value">{{ proveedor.telefono|default:"No registrado" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Correo Electrónico</span>
+            <span class="info-item-value">{{ proveedor.email|default:"No registrado" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Dirección Principal</span>
+            <span class="info-item-value">{{ proveedor.direccion }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Links Section -->
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">🌐</span>
+          <h3>Presencia Web y Redes</h3>
+        </div>
+        
+        {% if proveedor.pagina_web or proveedor.red_facebook or proveedor.red_instagram or proveedor.red_linkedin or proveedor.red_twitter %}
+          <div class="social-buttons-stack">
+            {% if proveedor.pagina_web %}
+              <a href="{{ proveedor.pagina_web }}" target="_blank" class="social-btn web">
+                <span class="social-icon">🌐</span> Sitio Web Oficial
+              </a>
+            {% endif %}
+            {% if proveedor.red_facebook %}
+              <a href="{{ proveedor.red_facebook }}" target="_blank" class="social-btn facebook">
+                <span class="social-icon">📘</span> Facebook
+              </a>
+            {% endif %}
+            {% if proveedor.red_instagram %}
+              <a href="{{ proveedor.red_instagram }}" target="_blank" class="social-btn instagram">
+                <span class="social-icon">📸</span> Instagram
+              </a>
+            {% endif %}
+            {% if proveedor.red_twitter %}
+              <a href="{{ proveedor.red_twitter }}" target="_blank" class="social-btn twitter">
+                <span class="social-icon">🐦</span> X (Twitter)
+              </a>
+            {% endif %}
+            {% if proveedor.red_linkedin %}
+              <a href="{{ proveedor.red_linkedin }}" target="_blank" class="social-btn linkedin">
+                <span class="social-icon">💼</span> LinkedIn
+              </a>
+            {% endif %}
+          </div>
+        {% else %}
+          <p class="empty-social-msg">Aún no has agregado enlaces a tus redes o página web oficial.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Column: Edit Profile Form -->
+    <div class="profile-main">
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">✏️</span>
+          <h3>Editar Perfil de Empresa</h3>
+        </div>
+
+        <form action="" method="post" enctype="multipart/form-data" class="profile-edit-form">
+          {% csrf_token %}
+          
+          <div class="form-fields-grid">
+            {% for field in formulario %}
+              <div class="form-field-wrapper {% if field.name == 'foto_perfil' or field.name == 'direccion' or field.name == 'pagina_web' %}full-width{% endif %}">
+                <label for="{{ field.id_for_label }}" class="custom-form-label">
+                  {{ field.label }}
+                  {% if field.field.required %}<span class="req-star">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% if field.help_text %}
+                  <span class="custom-help-text">{{ field.help_text }}</span>
+                {% endif %}
+                {% if field.errors %}
+                  <span class="custom-field-error">{{ field.errors.0 }}</span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="profile-form-footer">
+            <button type="submit" class="btn btn-save-profile">💾 Guardar Cambios</button>
+            <a href="{% url 'dashboard_proveedor' %}" class="btn btn-back-profile">← Volver al Panel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -64,6 +64,14 @@ class Proveedor(models.Model):
     direccion = models.CharField(max_length=200)
     usuario = models.CharField(max_length=100, unique=True, null=True, blank=True)
     contrasenia = models.CharField(max_length=128, null=True, blank=True)
+    telefono = models.CharField(max_length=15, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    foto_perfil = models.ImageField(upload_to='perfiles/proveedores/', blank=True, null=True)
+    pagina_web = models.URLField(blank=True, null=True, help_text="Página web oficial de la empresa.")
+    red_facebook = models.URLField(blank=True, null=True, help_text="Link de Facebook.")
+    red_instagram = models.URLField(blank=True, null=True, help_text="Link de Instagram.")
+    red_linkedin = models.URLField(blank=True, null=True, help_text="Link de LinkedIn.")
+    red_twitter = models.URLField(blank=True, null=True, help_text="Link de Twitter / X.")
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.ruc)
@@ -89,8 +97,13 @@ class Vendedor(models.Model):
     reputacion = models.CharField(max_length=50, default='Buena')
     calificacion = models.DecimalField(max_digits=3, decimal_places=2, default=5.0)
     descripcion_perfil = models.TextField(blank=True, null=True)
+<<<<<<< HEAD
     latitud_actual = models.FloatField(blank=True, null=True, help_text="Latitud actual para rastreo en tiempo real")
     longitud_actual = models.FloatField(blank=True, null=True, help_text="Longitud actual para rastreo en tiempo real")
+=======
+    foto_perfil = models.ImageField(upload_to='perfiles/vendedores/', blank=True, null=True)
+    acepta_letras_cambio = models.BooleanField(default=False, help_text="Indica si el vendedor acepta ofrecer letras de cambio / crédito a compradores.")
+>>>>>>> a8c57b0 (Perfiles para cada Rol)
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)
@@ -110,9 +123,14 @@ class Comprador(models.Model):
     direccion = models.CharField(max_length=200)
     usuario = models.CharField(max_length=100, unique=True, null=True, blank=True)
     contrasenia = models.CharField(max_length=128, null=True, blank=True)
+<<<<<<< HEAD
     latitud = models.FloatField(blank=True, null=True, help_text="Latitud de la tienda")
     longitud = models.FloatField(blank=True, null=True, help_text="Longitud de la tienda")
     referencias_direccion = models.TextField(blank=True, null=True, help_text="Puntos de referencia para llegar")
+=======
+    telefono = models.CharField(max_length=15, blank=True, null=True)
+    foto_perfil = models.ImageField(upload_to='perfiles/compradores/', blank=True, null=True)
+>>>>>>> a8c57b0 (Perfiles para cada Rol)
 
     def __str__(self):
         return "%s - %s" % (self.nombre, self.cedula)

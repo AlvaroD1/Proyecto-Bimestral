@@ -1,0 +1,145 @@
+{% extends "master.html" %}
+{% load static %}
+
+{% block title %}Mi Perfil - {{ vendedor.nombre }} | Conexia{% endblock %}
+
+{% block content %}
+<div class="profile-wrapper">
+  <!-- Hero Banner Header -->
+  <div class="profile-hero hero-vendedor">
+    <div class="profile-hero-avatar">
+      {% if vendedor.foto_perfil %}
+        <img src="{{ vendedor.foto_perfil.url }}" alt="Foto de {{ vendedor.nombre }}" class="avatar-hero-img">
+      {% else %}
+        <div class="avatar-hero-placeholder placeholder-vendedor">
+          <span>{{ vendedor.nombre|make_list|first|upper }}</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="profile-hero-info">
+      <div class="profile-role-badge badge-role-vendedor">
+        <span class="badge-icon">🤝</span> Vendedor Autorizado
+      </div>
+      <h2 class="profile-hero-name">{{ vendedor.nombre }}</h2>
+      <p class="profile-hero-sub">
+        Cédula: <strong>{{ vendedor.cedula }}</strong> | Usuario: <code>{{ vendedor.usuario }}</code>
+      </p>
+      {% if vendedor.acepta_letras_cambio %}
+        <div class="letras-hero-tag" title="Los acuerdos de crédito o letras de venta son gestionados directamente entre el Vendedor y el Comprador, sin responsabilidad para Conexia.">
+          📜 Acepta Letras de Cambio
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Main Grid Layout -->
+  <div class="profile-grid">
+    <!-- Left Column: Details & Reputación -->
+    <div class="profile-sidebar">
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">📋</span>
+          <h3>Información General</h3>
+        </div>
+        
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-item-label">Cédula</span>
+            <span class="info-item-value">{{ vendedor.cedula }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Usuario</span>
+            <span class="info-item-value">{{ vendedor.usuario }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Teléfono</span>
+            <span class="info-item-value">{{ vendedor.telefono|default:"No registrado" }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">Reputación</span>
+            <span class="info-item-value">
+              {% if vendedor.reputacion == 'Excelente' or vendedor.reputacion == 'Buena' %}
+                <span class="badge badge-reputacion-buena">{{ vendedor.reputacion }}</span>
+              {% elif vendedor.reputacion == 'Regular' %}
+                <span class="badge badge-reputacion-regular">{{ vendedor.reputacion }}</span>
+              {% else %}
+                <span class="badge badge-reputacion-mala">{{ vendedor.reputacion }}</span>
+              {% endif %}
+              <span class="star-rating">★ {{ vendedor.calificacion }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description Card -->
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">📝</span>
+          <h3>Descripción del Perfil</h3>
+        </div>
+        <p class="profile-desc-text">{{ vendedor.descripcion_perfil|default:"Sin descripción pública agregada." }}</p>
+      </div>
+    </div>
+
+    <!-- Right Column: Edit Profile Form -->
+    <div class="profile-main">
+      <div class="profile-card-box">
+        <div class="card-box-header">
+          <span class="card-box-icon">✏️</span>
+          <h3>Editar Perfil de Vendedor</h3>
+        </div>
+
+        <form action="" method="post" enctype="multipart/form-data" class="profile-edit-form">
+          {% csrf_token %}
+          
+          <div class="form-fields-grid">
+            {% for field in formulario %}
+              {% if field.name != 'acepta_letras_cambio' %}
+                <div class="form-field-wrapper {% if field.name == 'foto_perfil' or field.name == 'descripcion_perfil' %}full-width{% endif %}">
+                  <label for="{{ field.id_for_label }}" class="custom-form-label">
+                    {{ field.label }}
+                    {% if field.field.required %}<span class="req-star">*</span>{% endif %}
+                  </label>
+                  {{ field }}
+                  {% if field.help_text %}
+                    <span class="custom-help-text">{{ field.help_text }}</span>
+                  {% endif %}
+                  {% if field.errors %}
+                    <span class="custom-field-error">{{ field.errors.0 }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <!-- Letras de Cambio Toggle Card -->
+          <div class="toggle-card-styled">
+            <div class="toggle-card-header">
+              <span class="toggle-card-icon">📜</span>
+              <div>
+                <h4>Letras de Cambio / Crédito</h4>
+                <p>Ofrece crédito directo a tus compradores.</p>
+              </div>
+            </div>
+            <label class="custom-toggle-switch">
+              {{ formulario.acepta_letras_cambio }}
+              <span class="custom-toggle-slider"></span>
+              <span class="custom-toggle-text">Acepto ofrecer letras de cambio</span>
+            </label>
+            
+            <div class="disclaimer-alert-box">
+              <span class="disclaimer-alert-icon">⚠️</span>
+              <p>Los acuerdos de crédito o letras de venta son gestionados directamente entre el Vendedor y el Comprador, sin responsabilidad para Conexia.</p>
+            </div>
+          </div>
+
+          <div class="profile-form-footer">
+            <button type="submit" class="btn btn-save-profile">💾 Guardar Cambios</button>
+            <a href="{% url 'dashboard_vendedor' %}" class="btn btn-back-profile">← Volver al Panel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
