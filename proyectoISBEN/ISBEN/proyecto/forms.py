@@ -205,16 +205,26 @@ class ItemReposicionForm(forms.Form):
 # ========== VALIDACIÓN DE IMÁGENES ==========
 
 FORMATOS_IMAGEN_VALIDOS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+MAX_TAMANO_IMAGEN_MB = 5  # Tamaño máximo en megabytes
 
 def validar_formato_imagen(imagen):
-    """Valida que el archivo subido sea una imagen en formato válido."""
+    """Valida formato y peso del archivo de imagen subido."""
     if imagen:
+        # Validar extensión
         ext = os.path.splitext(imagen.name)[1].lower()
         if ext not in FORMATOS_IMAGEN_VALIDOS:
             raise forms.ValidationError(
-                f"Formato de imagen no válido ({ext}). "
-                f"Solo se permiten: {', '.join(FORMATOS_IMAGEN_VALIDOS)}"
+                f"Formato no permitido ({ext}). "
+                f"Formatos válidos: {', '.join(FORMATOS_IMAGEN_VALIDOS)}"
             )
+        
+        # Validar tamaño máximo (5 MB)
+        if imagen.size > MAX_TAMANO_IMAGEN_MB * 1024 * 1024:
+            raise forms.ValidationError(
+                f"El archivo pesa demasiado ({round(imagen.size / (1024 * 1024), 2)} MB). "
+                f"El tamaño máximo permitido es de {MAX_TAMANO_IMAGEN_MB} MB."
+            )
+
 
 
 # ========== FORMULARIOS DE PERFIL ==========

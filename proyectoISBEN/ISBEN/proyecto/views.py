@@ -519,6 +519,48 @@ def recibir_pedido(request, id):
 
 # ========== SISTEMA DE ENTREGA SEGURA ==========
 
+def enviar_pedido(request, id):
+    """Permite al vendedor/proveedor despachar un pedido en estado Pendiente para iniciar el rastreo GPS."""
+    roles = request.session.get('roles', {})
+    if 'vendedor' not in roles and 'proveedor' not in roles:
+        return redirect('index')
+        
+    pedido = get_object_or_404(Pedido, pk=id)
+    if pedido.estado == 'Pendiente':
+        pedido.estado = 'Enviado'
+        pedido.save()
+        messages.success(request, f"🚚 El pedido #{pedido.id} ha sido despachado. ¡Rastreo GPS en vivo activo!")
+    else:
+        messages.error(request, f"El pedido #{pedido.id} no se puede enviar porque está en estado {pedido.estado}.")
+        
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    return redirect('dashboard_vendedor')
+
+
+def recibir_pedido(request, id):
+    """Permite al comprador marcar un pedido como recibido."""
+    roles = request.session.get('roles', {})
+    role_id = roles.get('comprador')
+    if not role_id:
+        return redirect('index')
+        
+    pedido = get_object_or_404(Pedido, pk=id)
+    if pedido.comprador.id != role_id:
+        messages.error(request, "Acceso no autorizado a este pedido.")
+        return redirect('index')
+        
+    if pedido.estado in ['Pendiente', 'Enviado']:
+        pedido.estado = 'Recibido'
+        pedido.save()
+        messages.success(request, f"Has marcado el pedido #{pedido.id} como RECIBIDO. ¡Gracias!")
+    else:
+        messages.error(request, f"El pedido ya está en estado {pedido.estado}.")
+        
+    return redirect('dashboard_comprador')
+
+
 def confirmar_entrega(request, id):
     """El vendedor ingresa el código de entrega para confirmar que el pedido
     fue entregado al tendero correcto."""
@@ -593,6 +635,7 @@ def confirmar_entrega(request, id):
             )
     
     return get_redirect()
+
 
 
 def completar_pago(request, id):
@@ -1003,7 +1046,6 @@ def eliminar_descuento(request, descuento_id):
     
     return redirect('dashboard_proveedor')
 
-<<<<<<< HEAD
 # ========== API DE SEGUIMIENTO GPS ==========
 
 @csrf_exempt
@@ -1063,7 +1105,6 @@ def obtener_ubicacion_vendedor(request, pedido_id):
         'total_activos': total_activos
     })
 
-=======
 
 # ========== PÁGINAS DE PERFIL ==========
 
@@ -1158,4 +1199,4 @@ def perfil_proveedor(request):
         'current_role_name': proveedor.nombre,
     }
     return render(request, 'perfil_proveedor.html', contexto)
->>>>>>> a8c57b0 (Perfiles para cada Rol)
+
