@@ -104,23 +104,33 @@
               {% endif %}
             </td>
             <td>
-              {% for desc in prod.obtener_descuentos %}
-                <div class="descuento-tag">
-                  🏷️ {{ desc.porcentaje_descuento }}% (≥{{ desc.cantidad_minima }} uds.)
-                  <form action="{% url 'eliminar_descuento' desc.id %}" method="post" class="form-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este descuento?');">✖</button>
-                  </form>
+              <details style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; min-width: 180px;">
+                <summary style="cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-main); user-select: none; display: flex; align-items: center; gap: 5px;">
+                  <span>🏷️ Gestionar Descuentos</span>
+                </summary>
+                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+                  {% for desc in prod.obtener_descuentos %}
+                    <div class="descuento-tag" style="margin: 0; justify-content: space-between;">
+                      <span>{{ desc.porcentaje_descuento }}% (≥{{ desc.cantidad_minima }} uds.)</span>
+                      <form action="{% url 'eliminar_descuento' desc.id %}" method="post" class="form-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 6px;" onclick="return confirm('¿Eliminar este descuento?');">✖</button>
+                      </form>
+                    </div>
+                  {% empty %}
+                    <span class="text-muted-italic" style="font-size: 12px; text-align: center; display: block; padding: 4px;">Sin descuentos activos</span>
+                  {% endfor %}
+                  <div style="border-top: 1px solid #e2e8f0; margin-top: 4px; padding-top: 8px;">
+                    <span style="font-size: 11px; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 4px;">NUEVO DESCUENTO:</span>
+                    <form action="{% url 'agregar_descuento' prod.id %}" method="post" class="descuento-form-inline" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                      {% csrf_token %}
+                      <input type="number" name="cantidad_minima" placeholder="≥Cant" min="2" class="descuento-input-sm" title="Cantidad mínima" style="flex: 1; min-width: 50px;" required>
+                      <input type="number" name="porcentaje_descuento" placeholder="%" min="1" max="100" step="0.01" class="descuento-input-sm" title="Porcentaje de descuento" style="flex: 1; min-width: 50px;" required>
+                      <button type="submit" class="btn btn-success btn-sm" style="padding: 4px 8px;">+</button>
+                    </form>
+                  </div>
                 </div>
-              {% empty %}
-                <span class="text-muted-italic" style="font-size: 12px;">Sin descuentos</span>
-              {% endfor %}
-              <form action="{% url 'agregar_descuento' prod.id %}" method="post" class="descuento-form-inline" style="margin-top: 6px;">
-                {% csrf_token %}
-                <input type="number" name="cantidad_minima" placeholder="≥Cant" min="2" class="descuento-input-sm" title="Cantidad mínima" required>
-                <input type="number" name="porcentaje_descuento" placeholder="%" min="1" max="100" step="0.01" class="descuento-input-sm" title="Porcentaje de descuento" required>
-                <button type="submit" class="btn btn-success btn-sm">+ Añadir</button>
-              </form>
+              </details>
             </td>
             <td>
               <div class="action-cell">

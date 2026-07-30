@@ -7,7 +7,12 @@
 {% endblock %}
 
 {% block content %}
-<h2>🛒 Panel de Control: Comprador / Tendero</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 10px; gap: 15px;">
+  <h2 style="margin-bottom: 0;">🛒 Panel de Control: Comprador / Tendero</h2>
+  <button onclick="document.getElementById('directorio-empresas').scrollIntoView({behavior: 'smooth', block: 'start'});" class="btn btn-accent" style="padding: 10px 20px; font-weight: bold; border-radius: 8px; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    ➕ Agregar Nuevo Pedido
+  </button>
+</div>
 <p class="text-muted-sm">
   Bienvenido, <strong>{{ comprador.nombre }}</strong>. Explora el catálogo de productos disponibles en tiempo real y gestiona tus pedidos.
 </p>
@@ -306,7 +311,7 @@
 
 <hr class="section-divider-lg">
 
-<h3>🏢 Directorio de Empresas Proveedoras</h3>
+<h3 id="directorio-empresas" style="scroll-margin-top: 30px;">🏢 Directorio de Empresas Proveedoras</h3>
 <p class="text-muted-sm">
   Selecciona una empresa para visualizar y comprar sus productos directamente:
 </p>
